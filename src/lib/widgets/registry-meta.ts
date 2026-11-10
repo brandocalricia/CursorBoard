@@ -70,11 +70,11 @@ export const WIDGET_META: WidgetMeta[] = [
   },
   {
     id: "speed",
-    title: "Internet speed",
-    description: "Latency, download, and upload",
+    title: "Internet",
+    description: "Live link rates, latency, and speed tests",
     category: "network",
     colSpan: 2,
-    rowSpan: 2,
+    rowSpan: 3,
     enabledByDefault: true,
   },
 ];

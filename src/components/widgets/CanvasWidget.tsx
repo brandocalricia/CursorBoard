@@ -5,6 +5,7 @@ import { CalendarClock, ChevronRight } from "lucide-react";
 import { format, formatDistanceToNow, isValid, parseISO } from "date-fns";
 import { WidgetShell } from "@/components/dashboard/WidgetShell";
 import { DetailSheet } from "@/components/dashboard/DetailSheet";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { CanvasPayload, DetailItem } from "@/lib/types";
 
 export function CanvasWidget() {
@@ -60,7 +61,13 @@ export function CanvasWidget() {
         error={error}
         sample={data?.sample}
         empty={!loading && !error && !(data?.assignments.length)}
-        emptyMessage="No upcoming assignments"
+        emptyNode={
+          <EmptyState
+            illustration="empty"
+            title="No upcoming assignments"
+            body="When Canvas is connected, deadlines land here with instructions one click away."
+          />
+        }
       >
         <ul className="space-y-2">
           {(data?.assignments ?? []).map((a) => {

@@ -5,6 +5,7 @@ import { Mail } from "lucide-react";
 import { formatDistanceToNow, parseISO, isValid } from "date-fns";
 import { WidgetShell } from "@/components/dashboard/WidgetShell";
 import { DetailSheet } from "@/components/dashboard/DetailSheet";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { DetailItem, EmailPayload } from "@/lib/types";
 
 const SAMPLE: EmailPayload = {
@@ -67,7 +68,13 @@ export function EmailWidget() {
         loading={loading}
         sample={data?.sample}
         empty={!loading && !(data?.messages.length)}
-        emptyMessage="Inbox is quiet"
+        emptyNode={
+          <EmptyState
+            illustration="mailbox"
+            title="Inbox is quiet"
+            body="Sample mail shows the detail pattern until Gmail is connected."
+          />
+        }
       >
         <ul className="space-y-2">
           {(data?.messages ?? []).map((m) => {

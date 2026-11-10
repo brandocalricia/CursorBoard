@@ -12,7 +12,10 @@ import { CanvasWidget } from "@/components/widgets/CanvasWidget";
 import { EmailWidget } from "@/components/widgets/EmailWidget";
 import { BriefsWidget } from "@/components/widgets/BriefsWidget";
 import { HostWidget } from "@/components/widgets/HostWidget";
-import { SpeedTestWidget } from "@/components/widgets/SpeedTestWidget";
+import { InternetWidget } from "@/components/widgets/InternetWidget";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Illustration } from "@/components/ui/Illustration";
 import { WIDGET_META, type WidgetId } from "@/lib/widgets/registry-meta";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +25,7 @@ const COMPONENTS: Record<WidgetId, ComponentType> = {
   email: EmailWidget,
   briefs: BriefsWidget,
   host: HostWidget,
-  speed: SpeedTestWidget,
+  speed: InternetWidget,
 };
 
 function greetingFor(date: Date) {
@@ -74,44 +77,64 @@ export function DashboardShell() {
         `density-${settings.density}`,
       )}
     >
-      <div className="mx-auto max-w-[1400px]">
-        <header className="relative mb-8 overflow-hidden rounded-[1.5rem] border border-border px-5 py-6 sm:px-7 sm:py-7">
-          <div className="hero-orb -left-16 -top-20 opacity-70" />
-          <div className="hero-orb right-0 top-0 opacity-40" style={{ width: 160, height: 160 }} />
-          <div className="relative flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+      <div className="mx-auto max-w-[1440px]">
+        <motion.header
+          className="hd-header mb-8 px-5 py-6 sm:px-8 sm:py-8"
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 28 }}
+        >
+          <div className="hero-orb -left-20 -top-24 opacity-80" />
+          <div className="hero-orb secondary -right-10 top-0 opacity-50" style={{ width: 200, height: 200 }} />
+          <div className="relative flex flex-wrap items-end justify-between gap-5">
+            <div className="min-w-0 flex-1">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="pulse-dot" aria-hidden />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">
+                  Local · live
+                </span>
+              </div>
+              <h1 className="font-[family-name:var(--font-display)] text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
                 High Dashboard
               </h1>
-              <p className="mt-2 text-base text-muted-foreground">
-                {now ? `${greetingFor(now)} · ${format(now, "EEEE, MMMM d · HH:mm")}` : "Local command center"}
+              <p className="mt-3 text-base text-muted-foreground sm:text-lg">
+                {now
+                  ? `${greetingFor(now)} · ${format(now, "EEEE, MMMM d · HH:mm")}`
+                  : "Your local command center"}
               </p>
               <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                Widgets, briefs, and automations stay on this machine.
+                Portfolio-grade ops surface — GitHub, Canvas, machine, internet, and briefs on this box.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              {!online ? (
-                <span className="meta-chip gap-1.5 text-[var(--warning)]">
-                  <WifiOff className="h-3 w-3" /> Offline
-                </span>
-              ) : null}
-              <Button
-                variant="outline"
-                onClick={() => setDrawerOpen(true)}
-                aria-label="Open customization"
-              >
-                <Settings2 className="h-4 w-4" />
-                Customize
-              </Button>
+            <div className="flex items-end gap-4">
+              <Illustration
+                name="analytics"
+                className="hidden h-28 w-auto opacity-90 sm:block lg:h-36"
+                alt=""
+              />
+              <div className="flex items-center gap-2 pb-1">
+                {!online ? (
+                  <span className="meta-chip gap-1.5 text-[var(--warning)]">
+                    <WifiOff className="h-3 w-3" /> Offline
+                  </span>
+                ) : null}
+                <Button
+                  variant="outline"
+                  onClick={() => setDrawerOpen(true)}
+                  aria-label="Open customization"
+                >
+                  <Settings2 className="h-4 w-4" />
+                  Customize
+                </Button>
+              </div>
             </div>
           </div>
-        </header>
+        </motion.header>
 
         {loading ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="hd-card h-52 animate-pulse bg-muted/40" />
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-56 w-full rounded-[1.4rem]" />
             ))}
           </div>
         ) : (
@@ -122,7 +145,7 @@ export function DashboardShell() {
               style={{ gap: "var(--density-gap)" }}
             >
               <AnimatePresence mode="popLayout">
-                {visible.map((w) => {
+                {visible.map((w, index) => {
                   const Comp = COMPONENTS[w.id];
                   const span =
                     settings.layoutPreset === "dense"
@@ -134,6 +157,14 @@ export function DashboardShell() {
                     <motion.div
                       key={w.id}
                       layout
+                      initial={{ opacity: 0, y: 18 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        delay: index * 0.05,
+                        type: "spring",
+                        stiffness: 360,
+                        damping: 30,
+                      }}
                       className={cn(
                         span >= 2 && "md:col-span-2",
                         span >= 3 && "xl:col-span-3",
@@ -152,11 +183,17 @@ export function DashboardShell() {
         )}
 
         {!loading && visible.length === 0 ? (
-          <div className="hd-card mt-6 p-8 text-center">
-            <p className="text-base font-medium text-foreground">All widgets are hidden</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Open Customize to turn some back on.
-            </p>
+          <div className="hd-card mt-6">
+            <EmptyState
+              illustration="dashboard"
+              title="All widgets are hidden"
+              body="Open Customize and turn a few panels back on."
+              action={
+                <Button size="sm" variant="accent" onClick={() => setDrawerOpen(true)}>
+                  Open Customize
+                </Button>
+              }
+            />
           </div>
         ) : null}
       </div>

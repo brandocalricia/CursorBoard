@@ -13,11 +13,13 @@
     "desktop:build": "echo 'Install Rust + @tauri-apps/cli, then: npx tauri build' && npx tauri build"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "better-sqlite3": "^13.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "framer-motion": "^14.12.0",
+    "ldrs": "^1.1.9",
     "lucide-react": "^1.71.0",
     "next": "15.5.29",
     "react": "19.1.0",

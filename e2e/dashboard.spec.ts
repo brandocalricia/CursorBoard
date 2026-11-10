@@ -32,7 +32,7 @@ test.describe("High Dashboard", () => {
     await expect(page.getByRole("heading", { name: "Canvas" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Email" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "This machine" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Internet speed" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Internet" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Briefs & automations" })).toBeVisible();
   });
 
@@ -97,23 +97,23 @@ test.describe("High Dashboard", () => {
     await dialog.getByRole("button", { name: "Close", exact: true }).click();
   });
 
-  test("Internet speed test UI is intuitive and Start is clickable", async ({ page }) => {
+  test("Internet panel shows live stats and speed test starts", async ({ page }) => {
     await waitForDashboard(page);
 
     const speed = page.locator("section").filter({
-      has: page.getByRole("heading", { name: "Internet speed" }),
+      has: page.getByRole("heading", { name: "Internet" }),
     });
-    await expect(speed.getByText("Measure your connection")).toBeVisible();
-    const start = speed.getByRole("button", { name: /Start speed test|Start/i });
+    await expect(speed.getByText(/Live ping|Online|Offline/i).first()).toBeVisible();
+    const start = speed.getByRole("button", { name: /Start speed test|Speed test|Retest/i }).first();
     await expect(start).toBeEnabled();
     await start.click();
     await expect(
       speed
         .getByText(
-          /Checking latency|Measuring download|Measuring upload|Testing|Test complete|Something went wrong/i,
+          /Checking latency|Measuring download|Measuring upload|Testing|Speed test complete|Speed test failed/i,
         )
         .first(),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible({ timeout: 20_000 });
   });
 
   test("Host widget shows readable machine metrics", async ({ page }) => {

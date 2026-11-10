@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Gauge, Play, RefreshCw } from "lucide-react";
 import { WidgetShell } from "@/components/dashboard/WidgetShell";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/button";
 import {
   runFullSpeedTest,
@@ -20,15 +22,27 @@ const PHASE_LABEL: Record<SpeedPhase, string> = {
   error: "Something went wrong",
 };
 
-function Ring({ value, max, label, unit }: { value: number | null; max: number; label: string; unit: string }) {
+function Ring({
+  value,
+  max,
+  label,
+  unit,
+  active,
+}: {
+  value: number | null;
+  max: number;
+  label: string;
+  unit: string;
+  active?: boolean;
+}) {
   const pct = value == null ? 0 : Math.min(1, value / max);
-  const r = 42;
+  const r = 44;
   const c = 2 * Math.PI * r;
   const offset = c * (1 - pct);
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="relative h-[112px] w-[112px]">
+      <div className="relative h-[120px] w-[120px]">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
           <circle
             cx="50"
@@ -36,26 +50,39 @@ function Ring({ value, max, label, unit }: { value: number | null; max: number; 
             r={r}
             fill="none"
             stroke="color-mix(in oklab, var(--muted-foreground) 22%, transparent)"
-            strokeWidth="8"
+            strokeWidth="7"
           />
-          <circle
+          <motion.circle
             cx="50"
             cy="50"
             r={r}
             fill="none"
-            strokeWidth="8"
+            strokeWidth="7"
             strokeLinecap="round"
             className="speed-ring"
             strokeDasharray={c}
-            strokeDashoffset={offset}
+            animate={{ strokeDashoffset: offset }}
+            transition={{ type: "spring", stiffness: 120, damping: 22 }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="stat-value text-xl font-semibold text-foreground">
+          <motion.span
+            key={String(value)}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="stat-value text-xl font-semibold text-foreground"
+          >
             {value == null ? "—" : value}
-          </span>
+          </motion.span>
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{unit}</span>
         </div>
+        {active ? (
+          <motion.div
+            className="absolute inset-2 rounded-full border border-[color-mix(in_oklab,var(--accent)_35%,transparent)]"
+            animate={{ opacity: [0.2, 0.7, 0.2], scale: [0.96, 1.02, 0.96] }}
+            transition={{ duration: 1.4, repeat: Infinity }}
+          />
+        ) : null}
       </div>
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
     </div>
@@ -124,6 +151,7 @@ export function SpeedTestWidget() {
       title="Internet speed"
       description={PHASE_LABEL[phase]}
       error={error}
+      onRetry={() => void run()}
       sample={result ? !result.internetPath : undefined}
       actions={
         <Button
@@ -145,20 +173,33 @@ export function SpeedTestWidget() {
       }
     >
       {!result && phase === "idle" ? (
-        <div className="flex h-40 flex-col items-center justify-center gap-3 text-center">
-          <Gauge className="h-8 w-8 text-[var(--accent)]" />
-          <div>
-            <p className="text-sm font-medium text-foreground">Measure your connection</p>
-            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-              Runs latency, download, and upload against a public edge — not just this machine.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={<Gauge className="h-5 w-5" />}
+          title="Measure your connection"
+          body="Runs latency, download, and upload against a public edge — not just this machine."
+          action={
+            <Button size="sm" variant="accent" onClick={() => void run()}>
+              <Play className="h-3.5 w-3.5" /> Start test
+            </Button>
+          }
+        />
       ) : (
         <div className="space-y-5">
           <div className="flex flex-wrap items-end justify-around gap-4 pt-1">
-            <Ring value={result?.downloadMbps ?? null} max={200} label="Download" unit="Mbps" />
-            <Ring value={result?.uploadMbps ?? null} max={100} label="Upload" unit="Mbps" />
+            <Ring
+              value={result?.downloadMbps ?? null}
+              max={200}
+              label="Download"
+              unit="Mbps"
+              active={phase === "download"}
+            />
+            <Ring
+              value={result?.uploadMbps ?? null}
+              max={100}
+              label="Upload"
+              unit="Mbps"
+              active={phase === "upload"}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -179,12 +220,7 @@ export function SpeedTestWidget() {
           </div>
 
           {result?.probedAt ? (
-            <p
-              className={cn(
-                "text-[11px] text-muted-foreground",
-                running && "animate-pulse",
-              )}
-            >
+            <p className={cn("text-[11px] text-muted-foreground", running && "animate-pulse")}>
               {running
                 ? PHASE_LABEL[phase]
                 : `Last run · ${new Date(result.probedAt).toLocaleString()}`}

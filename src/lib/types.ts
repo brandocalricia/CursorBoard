@@ -43,6 +43,7 @@ export type HostMetrics = {
   network: Array<{
     iface: string;
     ipv4?: string;
+    ipv6?: string;
     bytesRecv: number;
     bytesSent: number;
     rxMbps?: number;

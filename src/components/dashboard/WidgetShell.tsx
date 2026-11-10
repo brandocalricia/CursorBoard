@@ -1,9 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { ArrowsClockwise } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { WidgetSkeleton } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   title: string;
@@ -11,10 +14,12 @@ type Props = {
   loading?: boolean;
   error?: string | null;
   empty?: boolean;
+  emptyNode?: ReactNode;
   emptyMessage?: string;
   sample?: boolean;
   className?: string;
   actions?: ReactNode;
+  onRetry?: () => void;
   children: ReactNode;
 };
 
@@ -24,19 +29,21 @@ export function WidgetShell({
   loading,
   error,
   empty,
+  emptyNode,
   emptyMessage = "Nothing here yet",
   sample,
   className,
   actions,
+  onRetry,
   children,
 }: Props) {
   return (
     <motion.section
       layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 380, damping: 32 }}
+      transition={{ type: "spring", stiffness: 340, damping: 30 }}
       className={cn(
         "hd-card hd-card-interactive flex h-full flex-col overflow-hidden",
         className,
@@ -52,7 +59,7 @@ export function WidgetShell({
             {sample ? (
               <span
                 className="meta-chip"
-                title="Showing sample or local data — connect a live source in .env.local"
+                title="Sample or local fallback — connect a live source in .env.local"
               >
                 Sample
               </span>
@@ -67,20 +74,25 @@ export function WidgetShell({
 
       <div className="hd-scroll min-h-0 flex-1 overflow-auto">
         {loading ? (
-          <div className="flex h-36 items-center justify-center gap-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm">Loading…</span>
-          </div>
+          <WidgetSkeleton />
         ) : error ? (
-          <div className="flex h-36 flex-col items-center justify-center gap-2 px-4 text-center">
-            <AlertCircle className="h-5 w-5 text-[var(--danger)]" />
-            <p className="text-sm font-medium text-foreground">Couldn’t load this panel</p>
-            <p className="text-xs text-muted-foreground">{error}</p>
-          </div>
+          <EmptyState
+            illustration="empty"
+            title="Couldn’t load this panel"
+            body={error}
+            action={
+              onRetry ? (
+                <Button size="sm" variant="outline" onClick={onRetry}>
+                  <ArrowsClockwise className="h-3.5 w-3.5" />
+                  Retry
+                </Button>
+              ) : undefined
+            }
+          />
         ) : empty ? (
-          <div className="flex h-36 items-center justify-center px-4 text-center text-sm text-muted-foreground">
-            {emptyMessage}
-          </div>
+          emptyNode ?? (
+            <EmptyState illustration="empty" title={emptyMessage} body="Check back once data lands." />
+          )
         ) : (
           children
         )}
