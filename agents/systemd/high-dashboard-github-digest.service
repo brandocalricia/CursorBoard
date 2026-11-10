@@ -1,0 +1,8 @@
+[Unit]
+Description=High Dashboard GitHub digest → local ingest
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.high-dashboard/env
+ExecStart=/usr/bin/curl -sS -X POST http://127.0.0.1:3000/api/ingest -H "Authorization: Bearer ${INGEST_SECRET}" -H "Content-Type: application/json" -d "{\"source\":\"github\",\"kind\":\"daily_digest\",\"title\":\"GitHub digest\",\"body_md\":\"Automated local digest placeholder. Replace with agents/github-digest.sh output.\"}"

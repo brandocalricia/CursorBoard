@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "High Dashboard",
+  "version": "0.1.0",
+  "identifier": "com.highdashboard.app",
+  "build": {
+    "beforeDevCommand": "npm run dev -- --port 1420",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../.next/standalone"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "High Dashboard",
+        "width": 1280,
+        "height": 860,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["appimage", "deb", "dmg", "msi"],
+    "icon": ["icons/icon.png"]
+  }
+}
