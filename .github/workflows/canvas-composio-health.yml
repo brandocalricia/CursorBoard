@@ -1,0 +1,45 @@
+name: Canvas Composio health
+
+# Runs ~every 25 days (1st + 26th). Needs COMPOSIO_API_KEY as a repo secret.
+# This does NOT expose assignment data — only checks that the OAuth connection still works.
+
+on:
+  schedule:
+    - cron: "0 15 1,26 * *"
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Canvas via Composio
+        env:
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_CANVAS_ACCOUNT_ID: ${{ secrets.COMPOSIO_CANVAS_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${COMPOSIO_API_KEY:-}" ]; then
+            echo "COMPOSIO_API_KEY secret missing — add it in repo Settings → Secrets"
+            exit 1
+          fi
+          BODY='{"arguments":{}}'
+          if [ -n "${COMPOSIO_CANVAS_ACCOUNT_ID:-}" ]; then
+            BODY=$(jq -nc --arg id "$COMPOSIO_CANVAS_ACCOUNT_ID" '{arguments:{}, connected_account_id:$id}')
+          fi
+          CODE=$(curl -sS -o /tmp/canvas-health.json -w "%{http_code}" \
+            -X POST "https://backend.composio.dev/api/v3.1/tools/execute/CANVAS_GET_CURRENT_USER" \
+            -H "content-type: application/json" \
+            -H "x-api-key: ${COMPOSIO_API_KEY}" \
+            -d "$BODY")
+          echo "HTTP $CODE"
+          head -c 500 /tmp/canvas-health.json || true
+          echo
+          if [ "$CODE" != "200" ]; then
+            echo "::error::Composio Canvas call failed (HTTP $CODE). Reconnect at https://app.composio.dev or cursor.com/automations"
+            exit 1
+          fi
+          if ! grep -q '"successful"[[:space:]]*:[[:space:]]*true' /tmp/canvas-health.json; then
+            echo "::error::Composio reported unsuccessful Canvas health check. Re-auth Canvas in Composio."
+            exit 1
+          fi
+          echo "Canvas Composio connection healthy"
