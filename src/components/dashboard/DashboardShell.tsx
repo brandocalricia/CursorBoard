@@ -2,23 +2,25 @@
 
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
-import { Settings2 } from "lucide-react";
+import { Settings2, WifiOff } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/components/providers/AppProviders";
 import { CustomizationDrawer } from "@/components/dashboard/CustomizationDrawer";
 import { GitHubWidget } from "@/components/widgets/GitHubWidget";
 import { CanvasWidget } from "@/components/widgets/CanvasWidget";
+import { EmailWidget } from "@/components/widgets/EmailWidget";
 import { HostWidget } from "@/components/widgets/HostWidget";
-import { NetworkWidget } from "@/components/widgets/NetworkWidget";
+import { SpeedTestWidget } from "@/components/widgets/SpeedTestWidget";
 import { WIDGET_META, type WidgetId } from "@/lib/widgets/registry-meta";
 import { cn } from "@/lib/utils";
 
 const COMPONENTS: Record<WidgetId, ComponentType> = {
   github: GitHubWidget,
   canvas: CanvasWidget,
+  email: EmailWidget,
   host: HostWidget,
-  network: NetworkWidget,
+  speed: SpeedTestWidget,
 };
 
 function greetingFor(date: Date) {
@@ -32,11 +34,23 @@ export function DashboardShell() {
   const { settings, loading } = useSettings();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
+  const [online, setOnline] = useState(true);
 
   useEffect(() => {
     setNow(new Date());
     const id = window.setInterval(() => setNow(new Date()), 30_000);
     return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const sync = () => setOnline(navigator.onLine);
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
   }, []);
 
   const visible = useMemo(
@@ -59,34 +73,45 @@ export function DashboardShell() {
       )}
     >
       <div className="mx-auto max-w-[1400px]">
-        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
-              High Dashboard
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              {now ? greetingFor(now) : "Welcome"}
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {now
-                ? `${format(now, "EEEE, MMMM d · HH:mm")} · local command center`
-                : "Local command center"}
-            </p>
+        <header className="relative mb-8 overflow-hidden rounded-[1.5rem] border border-border px-5 py-6 sm:px-7 sm:py-7">
+          <div className="hero-orb -left-16 -top-20 opacity-70" />
+          <div className="hero-orb right-0 top-0 opacity-40" style={{ width: 160, height: 160 }} />
+          <div className="relative flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="font-[family-name:var(--font-display)] text-xs font-semibold uppercase tracking-[0.28em] text-[var(--accent)]">
+                High Dashboard
+              </p>
+              <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                {now ? greetingFor(now) : "Welcome"}
+              </h1>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                {now
+                  ? `${format(now, "EEEE, MMMM d · HH:mm")} · your local command center`
+                  : "Your local command center"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {!online ? (
+                <span className="meta-chip gap-1.5 text-[var(--warning)]">
+                  <WifiOff className="h-3 w-3" /> Offline
+                </span>
+              ) : null}
+              <Button
+                variant="outline"
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Open customization"
+              >
+                <Settings2 className="h-4 w-4" />
+                Customize
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open customization"
-          >
-            <Settings2 className="h-4 w-4" />
-            Customize
-          </Button>
         </header>
 
         {loading ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="hd-card h-48 animate-pulse bg-muted/40" />
+              <div key={i} className="hd-card h-52 animate-pulse bg-muted/40" />
             ))}
           </div>
         ) : (
@@ -112,7 +137,9 @@ export function DashboardShell() {
                       className={cn(
                         span >= 2 && "md:col-span-2",
                         span >= 3 && "xl:col-span-3",
-                        w.id === "host" && settings.layoutPreset === "balanced" && "xl:col-span-2",
+                        w.id === "host" &&
+                          settings.layoutPreset === "balanced" &&
+                          "xl:col-span-2",
                       )}
                     >
                       <Comp />
@@ -126,8 +153,9 @@ export function DashboardShell() {
 
         {!loading && visible.length === 0 ? (
           <div className="hd-card mt-6 p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              All widgets are hidden. Open Customize to turn some back on.
+            <p className="text-base font-medium text-foreground">All widgets are hidden</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Open Customize to turn some back on.
             </p>
           </div>
         ) : null}

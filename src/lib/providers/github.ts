@@ -9,6 +9,8 @@ const SAMPLE: GitHubPayload = {
       repo: "brandocalricia/CursorBoard",
       summary: "Pushed 3 commits to main",
       createdAt: new Date(Date.now() - 3600_000).toISOString(),
+      url: "https://github.com/brandocalricia/CursorBoard",
+      body: "Latest push updates the modular widget grid and host metrics collector.",
     },
     {
       id: "2",
@@ -16,6 +18,8 @@ const SAMPLE: GitHubPayload = {
       repo: "brandocalricia/CursorBoard",
       summary: "Opened PR: High Dashboard scaffold",
       createdAt: new Date(Date.now() - 7200_000).toISOString(),
+      url: "https://github.com/brandocalricia/CursorBoard/pull/1",
+      body: "Scaffolds the local command center with Canvas, GitHub, and host panels.",
     },
     {
       id: "3",
@@ -23,6 +27,8 @@ const SAMPLE: GitHubPayload = {
       repo: "vercel/next.js",
       summary: "Starred vercel/next.js",
       createdAt: new Date(Date.now() - 14400_000).toISOString(),
+      url: "https://github.com/vercel/next.js",
+      body: "Starred the Next.js repository.",
     },
   ],
   pullRequests: [
@@ -30,9 +36,10 @@ const SAMPLE: GitHubPayload = {
       id: 1,
       title: "feat: High Dashboard modular command center",
       repo: "brandocalricia/CursorBoard",
-      url: "https://github.com/brandocalricia/CursorBoard",
+      url: "https://github.com/brandocalricia/CursorBoard/pull/1",
       updatedAt: new Date().toISOString(),
       state: "open",
+      body: "Local-first personal command center with GitHub, Canvas detail sheets, host metrics, and an internet speed test.",
     },
   ],
   sample: true,

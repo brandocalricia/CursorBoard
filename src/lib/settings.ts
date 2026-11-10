@@ -1,6 +1,11 @@
 import type { UserSettings } from "./types";
 import { sqlGet, sqlRun } from "./db";
-import { WIDGET_IDS } from "./widgets/registry-meta";
+import {
+  WIDGET_IDS,
+  SETTINGS_VERSION,
+  migrateEnabledWidgets,
+  normalizeEnabledWidgets,
+} from "./widgets/registry-meta";
 
 export const DEFAULT_SETTINGS: UserSettings = {
   theme: "dark",
@@ -8,34 +13,46 @@ export const DEFAULT_SETTINGS: UserSettings = {
   density: "comfortable",
   layoutPreset: "balanced",
   enabledWidgets: [...WIDGET_IDS],
+  settingsVersion: SETTINGS_VERSION,
 };
 
 export function getSettings(): UserSettings {
   const row = sqlGet<{ settings: string }>(
     "SELECT settings FROM user_settings WHERE id = 1",
   );
-  if (!row) return { ...DEFAULT_SETTINGS, enabledWidgets: [...DEFAULT_SETTINGS.enabledWidgets] };
+  if (!row) {
+    return { ...DEFAULT_SETTINGS, enabledWidgets: [...DEFAULT_SETTINGS.enabledWidgets] };
+  }
   try {
     const parsed = JSON.parse(row.settings) as Partial<UserSettings>;
-    return {
+    const fromVersion = parsed.settingsVersion ?? 1;
+    const next: UserSettings = {
       ...DEFAULT_SETTINGS,
       ...parsed,
-      enabledWidgets: parsed.enabledWidgets?.length
-        ? parsed.enabledWidgets
-        : [...DEFAULT_SETTINGS.enabledWidgets],
+      enabledWidgets: migrateEnabledWidgets(parsed.enabledWidgets, fromVersion),
+      settingsVersion: SETTINGS_VERSION,
     };
+    if (fromVersion < SETTINGS_VERSION) {
+      saveSettings(next);
+    }
+    return next;
   } catch {
     return { ...DEFAULT_SETTINGS, enabledWidgets: [...DEFAULT_SETTINGS.enabledWidgets] };
   }
 }
 
 export function saveSettings(next: UserSettings): UserSettings {
-  const payload = JSON.stringify(next);
+  const normalized: UserSettings = {
+    ...next,
+    enabledWidgets: normalizeEnabledWidgets(next.enabledWidgets),
+    settingsVersion: SETTINGS_VERSION,
+  };
+  const payload = JSON.stringify(normalized);
   sqlRun(
     `INSERT INTO user_settings (id, settings, updated_at)
      VALUES (1, ?, datetime('now'))
      ON CONFLICT(id) DO UPDATE SET settings = excluded.settings, updated_at = datetime('now')`,
     [payload],
   );
-  return next;
+  return normalized;
 }

@@ -8,6 +8,8 @@ export type UserSettings = {
   density: Density;
   layoutPreset: LayoutPreset;
   enabledWidgets: string[];
+  /** Bumps when we need a one-time widget migration. */
+  settingsVersion?: number;
 };
 
 export type HostMetrics = {
@@ -78,6 +80,8 @@ export type GitHubPayload = {
     repo: string;
     summary: string;
     createdAt: string;
+    url?: string;
+    body?: string;
   }>;
   pullRequests: Array<{
     id: number;
@@ -86,19 +90,43 @@ export type GitHubPayload = {
     url: string;
     updatedAt: string;
     state: string;
+    body?: string;
   }>;
   sample: boolean;
 };
 
+export type CanvasAssignment = {
+  id: string;
+  courseId?: string;
+  name: string;
+  course: string;
+  dueAt: string | null;
+  points: number | null;
+  htmlUrl: string;
+  descriptionHtml?: string | null;
+  descriptionText?: string | null;
+};
+
 export type CanvasPayload = {
-  assignments: Array<{
-    id: string;
-    name: string;
-    course: string;
-    dueAt: string | null;
-    points: number | null;
-    htmlUrl: string;
-  }>;
+  assignments: CanvasAssignment[];
+  sample: boolean;
+};
+
+export type EmailItem = {
+  id: string;
+  from: string;
+  subject: string;
+  preview: string;
+  bodyHtml?: string | null;
+  bodyText?: string | null;
+  receivedAt: string;
+  unread: boolean;
+  priority: "high" | "normal" | "low";
+  htmlUrl?: string;
+};
+
+export type EmailPayload = {
+  messages: EmailItem[];
   sample: boolean;
 };
 
@@ -109,4 +137,17 @@ export type NetworkProbe = {
   online: boolean;
   probedAt: string;
   sample: boolean;
+};
+
+/** Shared detail sheet payload for click-through items */
+export type DetailItem = {
+  id: string;
+  source: "canvas" | "github" | "email" | "system";
+  title: string;
+  subtitle?: string;
+  meta?: string[];
+  bodyHtml?: string | null;
+  bodyText?: string | null;
+  linkUrl?: string;
+  linkLabel?: string;
 };

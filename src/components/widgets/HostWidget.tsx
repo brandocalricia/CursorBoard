@@ -68,11 +68,11 @@ export function HostWidget() {
 
   return (
     <WidgetShell
-      title="Host"
+      title="This machine"
       description={
         data
           ? `${data.hostname} · ${data.os} ${data.arch}${data.partial ? " · partial" : ""}`
-          : "Full machine telemetry"
+          : "CPU, memory, disk, and more"
       }
       loading={loading}
       error={error}
@@ -81,8 +81,8 @@ export function HostWidget() {
       {data ? (
         <div className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-3 rounded-xl bg-muted/50 p-3">
-              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <div className="space-y-3 rounded-2xl bg-muted/50 p-3">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <Cpu className="h-3.5 w-3.5" /> CPU
               </div>
               <p className="text-sm text-foreground">{data.cpu.model}</p>
@@ -94,8 +94,8 @@ export function HostWidget() {
               </p>
               <Meter value={data.cpu.usagePercent} label="Utilization" />
             </div>
-            <div className="space-y-3 rounded-xl bg-muted/50 p-3">
-              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <div className="space-y-3 rounded-2xl bg-muted/50 p-3">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <MemoryStick className="h-3.5 w-3.5" /> Memory
               </div>
               <p className="font-mono text-sm text-foreground">

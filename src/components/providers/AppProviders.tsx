@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import type { UserSettings } from "@/lib/types";
-import { WIDGET_IDS } from "@/lib/widgets/registry-meta";
+import { WIDGET_IDS, normalizeEnabledWidgets } from "@/lib/widgets/registry-meta";
 
 type Ctx = {
   settings: UserSettings;
@@ -40,7 +40,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
         const res = await fetch("/api/settings", { cache: "no-store" });
         if (res.ok) {
           const data = (await res.json()) as UserSettings;
-          if (!cancelled) setLocal(data);
+          if (!cancelled) {
+            setLocal({
+              ...data,
+              enabledWidgets: normalizeEnabledWidgets(data.enabledWidgets),
+            });
+          }
         }
       } finally {
         if (!cancelled) setLoading(false);

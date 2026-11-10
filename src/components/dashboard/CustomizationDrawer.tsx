@@ -21,7 +21,7 @@ export function CustomizationDrawer({ open, onClose }: Props) {
         <>
           <motion.button
             type="button"
-            aria-label="Close settings overlay"
+            aria-label="Dismiss settings overlay"
             className="fixed inset-0 z-40 bg-black/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
