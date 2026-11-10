@@ -1,16 +1,48 @@
 # Automations & local sync
 
-High Dashboard is **not hosted**. Cloud Automations cannot POST to `127.0.0.1` without a tunnel — so **local timers are the primary sync path**.
+High Dashboard is **not hosted**. Cloud agents cannot POST to `127.0.0.1` without a tunnel — **local timers are the primary sync path**. Cloud jobs cover what they can (Composio health, CI).
 
-## Local timers (use these)
+## Quick start (wire everything)
 
-See [`agents/systemd/`](../agents/systemd/) for Fedora user units:
+```bash
+# 1) App must be running locally
+npm run build && npm start
 
-- `high-dashboard-github-digest.timer` — daily digest → `POST /api/ingest`
-- `high-dashboard-canvas-sync.timer` — every 6h refresh signal
-- `high-dashboard-host` — optional; host metrics already refresh in-app every 15s
+# 2) Smoke-test every local automation once
+./agents/run-all-once.sh
 
-Example ingest:
+# 3) Install Fedora/Linux user timers (optional but recommended)
+./agents/install-timers.sh
+```
+
+Then open the dashboard → **Briefs & automations** → digests appear; **Run once** re-triggers scripts.
+
+Put secrets in `~/.high-dashboard/env` and/or `.env.local` (`COMPOSIO_API_KEY`, `GITHUB_TOKEN`, optional `INGEST_SECRET`).
+
+## Local scripts (`agents/`)
+
+| Script | What it does | How it helps |
+|--------|----------------|--------------|
+| `github-digest.sh` | Builds activity + open-PR markdown via `gh`, POSTs `/api/ingest` | Morning Briefs without opening GitHub |
+| `canvas-sync.sh` | Hits `/api/canvas` (warms cache) + records status brief | Keeps Canvas fresh every 6h |
+| `canvas-auth-check.sh` | Composio `CANVAS_GET_CURRENT_USER` + brief | Catches OAuth death before the 30-day cliff matters |
+| `host-snapshot.sh` | Forces `/api/host` snapshot | Confirms metrics path for probes |
+| `run-all-once.sh` | Runs the above | Manual / UI **Run once** |
+| `install-timers.sh` | Enables systemd `--user` timers | Hands-free after reboot |
+
+## Systemd timers (Fedora / Hyprland)
+
+Installed by `agents/install-timers.sh` into `~/.config/systemd/user/`:
+
+| Timer | Cadence | Service |
+|-------|---------|---------|
+| `high-dashboard-github-digest.timer` | Daily 07:00 | `github-digest.sh` |
+| `high-dashboard-canvas-sync.timer` | Every 6h | `canvas-sync.sh` |
+| `high-dashboard-canvas-auth.timer` | ~every 25 days | `canvas-auth-check.sh` |
+
+Host metrics refresh **in-app every 15s** — no timer required.
+
+Ingest example:
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3000/api/ingest \
@@ -19,28 +51,48 @@ curl -sS -X POST http://127.0.0.1:3000/api/ingest \
   -d '{"source":"github","kind":"daily_digest","title":"GitHub digest","body_md":"## Ships\n- ..."}'
 ```
 
-## Cursor Marketplace templates (enable on this repo)
+Without `INGEST_SECRET`, only **loopback** requests are accepted.
 
-Cloud agents **cannot create** Automations via API — create these once at [cursor.com/automations/new](https://cursor.com/automations/new) (or “Open with Cursor” from the marketplace). Point them at `brandocalricia/CursorBoard`.
+## Dashboard surfaces
 
-| Template | URL | Trigger | Purpose |
-|----------|-----|---------|---------|
-| Find critical bugs | https://cursor.com/marketplace/automations/find-bugs | Daily | High-severity correctness → fix PRs |
-| Find vulnerabilities | https://cursor.com/marketplace/automations/find-vulnerabilities | PR opened/pushed | Security review comments |
-| Autofix PR review comments | https://cursor.com/marketplace/automations/autofix-pr-review-comments | Review comment | Apply nits on this PR branch |
-| Summarize changes daily | https://cursor.com/marketplace/automations/daily-digest | Daily | Slack/repo digest (also inspires `agents/github-digest.sh`) |
-| Triage GitHub Actions failures | https://cursor.com/marketplace/automations/triage-github-workflow-failures | Workflow failed | CI triage |
+| Surface | Role |
+|---------|------|
+| **Briefs & automations** widget | Last pulses, recent digests, **Run once** |
+| `GET /api/automations` | Status JSON for timers / last runs |
+| `POST /api/automations` `{ "id": "all" }` | Trigger scripts from the UI |
+| `GET /api/digests` | Brief list |
+| `GET /api/health` | DB + secret configuration probe |
 
-Also enable Cursor-managed **Bugbot** + **Security Agents** on the repo (Automations → From Cursor).
+## Cloud / Cursor (cannot write your laptop DB)
 
-Live UI QA in this build used **Playwright click-through** against `http://127.0.0.1:3000` (theme, widget toggles, network retest, ingest API) — see `docs/QA_CHECKLIST.md`.
+| Automation | Status | Purpose |
+|------------|--------|---------|
+| Canvas Composio health timer | Subscribed in Cloud Agent (`0 15 1,26 * *`) | Ping Composio; Slack reconnect link if dead |
+| GitHub Action `canvas-composio-health.yml` | In repo | Same check via `COMPOSIO_API_KEY` secret |
+| Prompt template | `docs/automations/canvas-composio-health.md` | Create matching Automation at cursor.com if desired |
 
-## Live QA automation (manual / agent session)
+### Marketplace templates (enable once on this repo)
 
-During development, run Playwright (or a cloud agent with computer use) against `http://127.0.0.1:3000` to click Customize, toggle widgets, switch themes, and retest Network — same checklist as `docs/QA_CHECKLIST.md`.
+Cloud agents **cannot create** Automations via API — open [cursor.com/automations/new](https://cursor.com/automations/new) or marketplace:
+
+| Template | URL | Trigger |
+|----------|-----|---------|
+| Find critical bugs | https://cursor.com/marketplace/automations/find-bugs | Daily |
+| Find vulnerabilities | https://cursor.com/marketplace/automations/find-vulnerabilities | PR |
+| Autofix PR review comments | https://cursor.com/marketplace/automations/autofix-pr-review-comments | Review comment |
+| Summarize changes daily | https://cursor.com/marketplace/automations/daily-digest | Daily |
+| Triage GitHub Actions failures | https://cursor.com/marketplace/automations/triage-github-workflow-failures | Workflow failed |
+
+Also enable Cursor **Bugbot** + **Security Agents** on the repo.
 
 ## Canvas 30-day token limit (DU)
 
-Manual Canvas tokens expire in ≤30 days. **Do not rely on them.** Use the Composio Canvas OAuth connection + `COMPOSIO_API_KEY` instead.
+Prefer Composio OAuth — see [`docs/CANVAS_TOKENS.md`](CANVAS_TOKENS.md). Manual tokens are last resort.
 
-Full write-up + copy-paste **25-day connection health Automation**: [`docs/CANVAS_TOKENS.md`](CANVAS_TOKENS.md).
+## Live QA
+
+```bash
+npm run build && npm run test:e2e
+```
+
+See `docs/QA_CHECKLIST.md`.

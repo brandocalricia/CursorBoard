@@ -10,6 +10,7 @@ import { CustomizationDrawer } from "@/components/dashboard/CustomizationDrawer"
 import { GitHubWidget } from "@/components/widgets/GitHubWidget";
 import { CanvasWidget } from "@/components/widgets/CanvasWidget";
 import { EmailWidget } from "@/components/widgets/EmailWidget";
+import { BriefsWidget } from "@/components/widgets/BriefsWidget";
 import { HostWidget } from "@/components/widgets/HostWidget";
 import { SpeedTestWidget } from "@/components/widgets/SpeedTestWidget";
 import { WIDGET_META, type WidgetId } from "@/lib/widgets/registry-meta";
@@ -19,6 +20,7 @@ const COMPONENTS: Record<WidgetId, ComponentType> = {
   github: GitHubWidget,
   canvas: CanvasWidget,
   email: EmailWidget,
+  briefs: BriefsWidget,
   host: HostWidget,
   speed: SpeedTestWidget,
 };
@@ -78,16 +80,14 @@ export function DashboardShell() {
           <div className="hero-orb right-0 top-0 opacity-40" style={{ width: 160, height: 160 }} />
           <div className="relative flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="font-[family-name:var(--font-display)] text-xs font-semibold uppercase tracking-[0.28em] text-[var(--accent)]">
+              <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
                 High Dashboard
-              </p>
-              <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                {now ? greetingFor(now) : "Welcome"}
               </h1>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                {now
-                  ? `${format(now, "EEEE, MMMM d · HH:mm")} · your local command center`
-                  : "Your local command center"}
+              <p className="mt-2 text-base text-muted-foreground">
+                {now ? `${greetingFor(now)} · ${format(now, "EEEE, MMMM d · HH:mm")}` : "Local command center"}
+              </p>
+              <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                Widgets, briefs, and automations stay on this machine.
               </p>
             </div>
             <div className="flex items-center gap-2">

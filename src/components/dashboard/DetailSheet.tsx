@@ -1,10 +1,12 @@
 "use client";
 
+import { useCallback, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DetailItem } from "@/lib/types";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 type Props = {
   item: DetailItem | null;
@@ -13,7 +15,14 @@ type Props = {
 };
 
 export function DetailSheet({ item, onClose, loading }: Props) {
-  const open = Boolean(item) || loading;
+  const open = Boolean(item) || Boolean(loading);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const onEscape = useCallback(() => onClose(), [onClose]);
+  useEscapeKey(open, onEscape);
+
+  useEffect(() => {
+    if (open) closeBtnRef.current?.focus();
+  }, [open]);
 
   return (
     <AnimatePresence>
@@ -59,7 +68,13 @@ export function DetailSheet({ item, onClose, loading }: Props) {
                   </div>
                 ) : null}
               </div>
-              <Button size="icon" variant="ghost" onClick={onClose} aria-label="Close">
+              <Button
+                ref={closeBtnRef}
+                size="icon"
+                variant="ghost"
+                onClick={onClose}
+                aria-label="Close"
+              >
                 <X className="h-4 w-4" />
               </Button>
             </header>

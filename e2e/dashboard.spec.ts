@@ -5,8 +5,8 @@ const DEFAULT_SETTINGS = {
   accent: "#14B8A6",
   density: "comfortable" as const,
   layoutPreset: "balanced" as const,
-  enabledWidgets: ["github", "canvas", "email", "host", "speed"],
-  settingsVersion: 2,
+  enabledWidgets: ["github", "canvas", "email", "briefs", "host", "speed"],
+  settingsVersion: 3,
 };
 
 async function resetSettings(request: import("@playwright/test").APIRequestContext) {
@@ -33,6 +33,19 @@ test.describe("High Dashboard", () => {
     await expect(page.getByRole("heading", { name: "Email" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "This machine" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Internet speed" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Briefs & automations" })).toBeVisible();
+  });
+
+  test("Briefs widget can run automations and show digests", async ({ page }) => {
+    await waitForDashboard(page);
+
+    const briefs = page.locator("section").filter({
+      has: page.getByRole("heading", { name: "Briefs & automations" }),
+    });
+    await briefs.getByRole("button", { name: "Run all automations once" }).click();
+    await expect(briefs.getByText(/GitHub digest|Canvas sync|Host metrics|Recent briefs/i).first()).toBeVisible({
+      timeout: 45_000,
+    });
   });
 
   test("Canvas row opens detail sheet with instructions and link", async ({ page }) => {
@@ -118,7 +131,7 @@ test.describe("High Dashboard", () => {
     await page.getByRole("button", { name: "Open customization" }).click();
     await expect(page.getByRole("heading", { name: "Customize" })).toBeVisible();
 
-    await page.getByRole("button", { name: "light", exact: true }).click();
+    await page.getByRole("button", { name: "Light", exact: true }).click();
     await expect(page.locator("html")).toHaveClass(/light/);
 
     const emailToggle = page
@@ -142,7 +155,11 @@ test.describe("High Dashboard", () => {
     await expect(page.getByRole("heading", { name: "Email" })).toHaveCount(0);
   });
 
-  test("API health: host, canvas, speedtest, ingest", async ({ request }) => {
+  test("API health: host, canvas, speedtest, ingest, automations", async ({ request }) => {
+    const health = await request.get("/api/health");
+    expect(health.ok()).toBeTruthy();
+    expect((await health.json()).ok).toBeTruthy();
+
     const host = await request.get("/api/host");
     expect(host.ok()).toBeTruthy();
     const hostJson = await host.json();
@@ -167,9 +184,24 @@ test.describe("High Dashboard", () => {
     expect(bytes.byteLength).toBeGreaterThan(1000);
 
     const ingest = await request.post("/api/ingest", {
-      data: { source: "playwright", kind: "ping", payload: { ok: true } },
+      data: {
+        source: "playwright",
+        kind: "daily_digest",
+        title: "Playwright digest",
+        body_md: "## Test\nAutomation ingest works.",
+      },
     });
     expect(ingest.ok()).toBeTruthy();
     expect((await ingest.json()).ok).toBeTruthy();
+
+    const digests = await request.get("/api/digests");
+    expect(digests.ok()).toBeTruthy();
+    expect(Array.isArray((await digests.json()).digests)).toBeTruthy();
+
+    const autos = await request.get("/api/automations");
+    expect(autos.ok()).toBeTruthy();
+    const autoJson = await autos.json();
+    expect(Array.isArray(autoJson.pulses)).toBeTruthy();
+    expect(autoJson.pulses.length).toBeGreaterThanOrEqual(3);
   });
 });

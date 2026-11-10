@@ -69,6 +69,12 @@ export function CanvasWidget() {
               due && isValid(due)
                 ? `${format(due, "MMM d · h:mm a")} · ${formatDistanceToNow(due, { addSuffix: true })}`
                 : "No due date";
+            const overdue = due && isValid(due) && due.getTime() < Date.now();
+            const dueSoon =
+              due &&
+              isValid(due) &&
+              !overdue &&
+              due.getTime() - Date.now() < 36 * 3600_000;
             return (
               <li key={a.id}>
                 <button
@@ -83,6 +89,7 @@ export function CanvasWidget() {
                       meta: [
                         dueLabel,
                         a.points != null ? `${a.points} pts` : "",
+                        overdue ? "Overdue" : dueSoon ? "Due soon" : "",
                       ].filter(Boolean),
                       bodyHtml: a.descriptionHtml,
                       bodyText:
@@ -99,7 +106,15 @@ export function CanvasWidget() {
                         {a.name}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">{a.course}</p>
-                      <p className="mt-2 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                      <p
+                        className={`mt-2 flex items-center gap-1.5 text-[12px] ${
+                          overdue
+                            ? "text-[var(--danger)]"
+                            : dueSoon
+                              ? "text-[var(--warning)]"
+                              : "text-muted-foreground"
+                        }`}
+                      >
                         <CalendarClock className="h-3.5 w-3.5 shrink-0" />
                         {dueLabel}
                       </p>

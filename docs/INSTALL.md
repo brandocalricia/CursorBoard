@@ -47,7 +47,17 @@ GitHub Releases should attach:
 | Variable | Purpose |
 |----------|---------|
 | `GITHUB_TOKEN` | Live GitHub activity/PRs |
-| `CANVAS_API_TOKEN` + `CANVAS_BASE_URL` | Live Canvas assignments |
-| `INGEST_SECRET` | Optional bearer for `/api/ingest` |
+| `COMPOSIO_API_KEY` (+ optional `COMPOSIO_CANVAS_ACCOUNT_ID`) | **Preferred** live Canvas via OAuth |
+| `CANVAS_API_TOKEN` + `CANVAS_BASE_URL` | Last-resort manual Canvas (DU ≤30 days) |
+| `INGEST_SECRET` | Optional bearer for `/api/ingest` (loopback allowed without it) |
 
 Without secrets, widgets show labeled **Sample** data.
+
+## Automations
+
+```bash
+./agents/run-all-once.sh      # smoke test while app is running
+./agents/install-timers.sh    # Fedora/Linux systemd --user timers
+```
+
+See [`docs/AUTOMATIONS.md`](AUTOMATIONS.md). Digests show in the **Briefs & automations** widget.

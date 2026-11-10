@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { collectHostMetrics, sampleHostMetrics } from "@/lib/host/collect";
-import { sqlRun } from "@/lib/db";
+import { cacheSnapshot } from "@/lib/snapshots";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,10 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const metrics = collectHostMetrics();
-    sqlRun(
-      `INSERT INTO metric_snapshots (source, kind, payload) VALUES (?, ?, ?)`,
-      ["system", "host_metrics", JSON.stringify(metrics)],
-    );
+    cacheSnapshot("system", "host_metrics", metrics, 80);
     return NextResponse.json(metrics, {
       headers: { "cache-control": "private, no-store" },
     });

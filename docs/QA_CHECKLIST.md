@@ -6,7 +6,7 @@ Prefer automated coverage:
 npm run build && npm run test:e2e
 ```
 
-Playwright covers brand load, Canvas/GitHub/Email detail sheets, internet speed Start affordance, host metrics, customize persistence, and API health.
+Playwright covers brand load, Briefs **Run once**, Canvas/GitHub/Email detail sheets, internet speed Start, host metrics, customize persistence, and API health (`/api/health`, digests, automations).
 
 ## Manual spot checks
 

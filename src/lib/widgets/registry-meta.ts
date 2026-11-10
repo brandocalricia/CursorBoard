@@ -2,6 +2,7 @@ export const WIDGET_IDS = [
   "github",
   "canvas",
   "email",
+  "briefs",
   "host",
   "speed",
 ] as const;
@@ -9,7 +10,7 @@ export const WIDGET_IDS = [
 export type WidgetId = (typeof WIDGET_IDS)[number];
 
 /** Bump when shipping widgets that existing installs should auto-enable once. */
-export const SETTINGS_VERSION = 2;
+export const SETTINGS_VERSION = 3;
 
 export type WidgetMeta = {
   id: WidgetId;
@@ -45,6 +46,15 @@ export const WIDGET_META: WidgetMeta[] = [
     title: "Email",
     description: "Unread and priority messages",
     category: "comms",
+    colSpan: 2,
+    rowSpan: 2,
+    enabledByDefault: true,
+  },
+  {
+    id: "briefs",
+    title: "Briefs & automations",
+    description: "Digests from local timers and one-click runs",
+    category: "system",
     colSpan: 2,
     rowSpan: 2,
     enabledByDefault: true,
@@ -88,7 +98,7 @@ export function migrateEnabledWidgets(
   fromVersion: number,
 ): WidgetId[] {
   let next = normalizeEnabledWidgets(ids);
-  if (fromVersion < 2) {
+  if (fromVersion < SETTINGS_VERSION) {
     const set = new Set(next);
     for (const meta of WIDGET_META) {
       if (meta.enabledByDefault) set.add(meta.id);
