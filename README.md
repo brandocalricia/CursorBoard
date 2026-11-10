@@ -20,7 +20,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-See [docs/INSTALL.md](docs/INSTALL.md), [docs/HOST_METRICS.md](docs/HOST_METRICS.md), [docs/AUTOMATIONS.md](docs/AUTOMATIONS.md).
+See [docs/INSTALL.md](docs/INSTALL.md), [docs/HOST_METRICS.md](docs/HOST_METRICS.md), [docs/AUTOMATIONS.md](docs/AUTOMATIONS.md), [docs/CANVAS_TOKENS.md](docs/CANVAS_TOKENS.md) (DU 30-day token limit → use Composio OAuth).
 
 ## Next prompts
 

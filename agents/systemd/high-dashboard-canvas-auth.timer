@@ -1,0 +1,9 @@
+[Unit]
+Description=Remind to verify Canvas/Composio auth every 25 days
+
+[Timer]
+OnCalendar=*-*-01/25 09:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

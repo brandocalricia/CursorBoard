@@ -38,3 +38,9 @@ Live UI QA in this build used **Playwright click-through** against `http://127.0
 ## Live QA automation (manual / agent session)
 
 During development, run Playwright (or a cloud agent with computer use) against `http://127.0.0.1:3000` to click Customize, toggle widgets, switch themes, and retest Network — same checklist as `docs/QA_CHECKLIST.md`.
+
+## Canvas 30-day token limit (DU)
+
+Manual Canvas tokens expire in ≤30 days. **Do not rely on them.** Use the Composio Canvas OAuth connection + `COMPOSIO_API_KEY` instead.
+
+Full write-up + copy-paste **25-day connection health Automation**: [`docs/CANVAS_TOKENS.md`](CANVAS_TOKENS.md).

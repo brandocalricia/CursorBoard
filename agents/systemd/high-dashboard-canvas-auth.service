@@ -1,0 +1,8 @@
+[Unit]
+Description=High Dashboard Canvas auth health ping
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-%h/.high-dashboard/env
+ExecStart=/usr/bin/curl -sS -X POST http://127.0.0.1:3000/api/ingest -H "Authorization: Bearer ${INGEST_SECRET}" -H "Content-Type: application/json" -d "{\"source\":\"canvas\",\"kind\":\"auth_check\",\"title\":\"Canvas auth check\",\"body_md\":\"Verify Composio Canvas connection is ACTIVE. Manual tokens expire in <=30 days at DU. See docs/CANVAS_TOKENS.md.\"}"
