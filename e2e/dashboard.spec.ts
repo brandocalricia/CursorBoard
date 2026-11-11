@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 const DEFAULT_SETTINGS = {
   theme: "dark" as const,
-  accent: "#14B8A6",
+    accent: "#5CEE15",
   density: "comfortable" as const,
   layoutPreset: "balanced" as const,
   enabledWidgets: ["github", "canvas", "email", "briefs", "host", "speed"],

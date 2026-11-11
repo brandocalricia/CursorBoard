@@ -16,7 +16,7 @@ export function WidgetSkeleton({ rows = 3 }: { rows?: number }) {
         <Skeleton className="h-6 w-14 rounded-lg" />
       </div>
       {Array.from({ length: rows }).map((_, i) => (
-        <Skeleton key={i} className="h-12 w-full rounded-2xl" />
+        <Skeleton key={i} className="h-12 w-full rounded-lg" />
       ))}
     </div>
   );

@@ -65,7 +65,7 @@ export function GitHubWidget() {
       >
         <div className="space-y-5">
           {activitySeries.length > 1 ? (
-            <div className="rounded-2xl bg-muted/45 px-3 py-2.5">
+            <div className="rounded-lg bg-muted/45 px-3 py-2.5">
               <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Events by day
               </p>

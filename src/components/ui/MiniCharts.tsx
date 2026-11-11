@@ -16,8 +16,8 @@ import {
 } from "recharts";
 
 const ACCENT = "var(--accent)";
-const ACCENT2 = "var(--accent-2)";
-const MUTED = "color-mix(in oklab, var(--muted-foreground) 35%, transparent)";
+const ACCENT2 = "#405B44";
+const MUTED = "color-mix(in oklab, var(--muted-foreground) 28%, transparent)";
 
 export function SparkArea({
   data,

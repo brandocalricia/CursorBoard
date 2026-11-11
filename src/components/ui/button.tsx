@@ -23,10 +23,10 @@ export const Button = React.forwardRef<HTMLButtonElement, Props>(function Button
           "text-muted-foreground hover:bg-muted hover:text-foreground",
         variant === "outline" && "border border-border bg-transparent hover:bg-muted",
         variant === "accent" &&
-          "bg-[var(--accent)] text-[var(--accent-foreground)] hover:brightness-110",
-        size === "sm" && "h-8 px-3",
-        size === "md" && "h-10 px-4",
-        size === "icon" && "h-10 w-10",
+          "bg-[var(--accent)] font-bold text-[var(--accent-foreground)] hover:brightness-110",
+        size === "sm" && "h-8 rounded-md px-3",
+        size === "md" && "h-9 rounded-md px-3.5",
+        size === "icon" && "h-9 w-9 rounded-md",
         className,
       )}
       {...props}

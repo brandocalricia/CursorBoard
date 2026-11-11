@@ -9,7 +9,7 @@ import {
 
 export const DEFAULT_SETTINGS: UserSettings = {
   theme: "dark",
-  accent: "#14B8A6",
+  accent: "#5CEE15",
   density: "comfortable",
   layoutPreset: "balanced",
   enabledWidgets: [...WIDGET_IDS],
@@ -32,6 +32,13 @@ export function getSettings(): UserSettings {
       enabledWidgets: migrateEnabledWidgets(parsed.enabledWidgets, fromVersion),
       settingsVersion: SETTINGS_VERSION,
     };
+    // v4: CryptoZen lime replaces legacy teal glass accent
+    if (fromVersion < 4) {
+      const legacy = (parsed.accent ?? "").toLowerCase();
+      if (!legacy || legacy === "#14b8a6" || legacy === "#14b8a6ff") {
+        next.accent = "#5CEE15";
+      }
+    }
     if (fromVersion < SETTINGS_VERSION) {
       saveSettings(next);
     }

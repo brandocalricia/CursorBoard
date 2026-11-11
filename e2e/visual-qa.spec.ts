@@ -8,7 +8,7 @@ test.describe("Visual authorization loop", () => {
     await request.put("/api/settings", {
       data: {
         theme: "dark",
-        accent: "#14B8A6",
+        accent: "#5CEE15",
         density: "comfortable",
         layoutPreset: "balanced",
         enabledWidgets: ["github", "canvas", "email", "briefs", "host", "speed"],

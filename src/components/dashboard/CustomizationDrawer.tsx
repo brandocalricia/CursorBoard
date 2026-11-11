@@ -10,7 +10,7 @@ import type { Density, LayoutPreset, ThemeMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 
-const ACCENTS = ["#14B8A6", "#22D3EE", "#38BDF8", "#34D399", "#F59E0B"];
+const ACCENTS = ["#5CEE15", "#14B8A6", "#22D3EE", "#E34D08", "#D9D9DA"];
 
 const THEME_LABELS: Record<ThemeMode, string> = {
   dark: "Dark",
@@ -181,7 +181,7 @@ export function CustomizationDrawer({ open, onClose }: Props) {
                 </ul>
               </section>
 
-              <section className="rounded-2xl border border-border bg-muted/40 px-3 py-3 text-xs leading-relaxed text-muted-foreground">
+              <section className="rounded-lg border border-border bg-muted/40 px-3 py-3 text-xs leading-relaxed text-muted-foreground">
                 <p className="font-medium text-foreground">Local automations</p>
                 <p className="mt-1">
                   Install timers: <code>agents/install-timers.sh</code>

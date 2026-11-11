@@ -40,20 +40,20 @@ export function WidgetShell({
   return (
     <motion.section
       layout
-      initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 340, damping: 30 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ type: "spring", stiffness: 420, damping: 34 }}
       className={cn(
         "hd-card hd-card-interactive flex h-full flex-col overflow-hidden",
         className,
       )}
       style={{ padding: "var(--density-pad)" }}
     >
-      <header className="mb-4 flex items-start justify-between gap-3">
+      <header className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-tight text-foreground">
+            <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               {title}
             </h2>
             {sample ? (
@@ -66,7 +66,7 @@ export function WidgetShell({
             ) : null}
           </div>
           {description ? (
-            <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{description}</p>
+            <p className="mt-1 text-[12px] leading-snug text-muted-foreground/80">{description}</p>
           ) : null}
         </div>
         {actions}
@@ -77,7 +77,6 @@ export function WidgetShell({
           <WidgetSkeleton />
         ) : error ? (
           <EmptyState
-            illustration="empty"
             title="Couldn’t load this panel"
             body={error}
             action={
@@ -90,9 +89,7 @@ export function WidgetShell({
             }
           />
         ) : empty ? (
-          emptyNode ?? (
-            <EmptyState illustration="empty" title={emptyMessage} body="Check back once data lands." />
-          )
+          emptyNode ?? <EmptyState title={emptyMessage} body="Check back once data lands." />
         ) : (
           children
         )}

@@ -268,7 +268,7 @@ export function InternetWidget() {
       <div className="space-y-5">
         {/* Live status strip */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div className="rounded-2xl bg-muted/55 px-3 py-2.5">
+          <div className="rounded-lg bg-muted/55 px-3 py-2.5">
             <div className="mb-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
               {online ? <WifiHigh className="h-3.5 w-3.5 text-[var(--success)]" /> : <WifiSlash className="h-3.5 w-3.5 text-[var(--danger)]" />}
               Link
@@ -278,20 +278,20 @@ export function InternetWidget() {
               <p className="text-[11px] text-muted-foreground">{hints.effectiveType}</p>
             ) : null}
           </div>
-          <div className="rounded-2xl bg-muted/55 px-3 py-2.5">
+          <div className="rounded-lg bg-muted/55 px-3 py-2.5">
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Live ping</p>
             <p className="stat-value mt-1 text-base text-foreground">
               {liveMs != null ? `${liveMs} ms` : "—"}
             </p>
             <p className="text-[11px] text-muted-foreground">every 5s</p>
           </div>
-          <div className="rounded-2xl bg-muted/55 px-3 py-2.5">
+          <div className="rounded-lg bg-muted/55 px-3 py-2.5">
             <div className="mb-1 flex items-center gap-1 text-[11px] uppercase tracking-wider text-muted-foreground">
               <ArrowDown className="h-3.5 w-3.5 text-[var(--accent)]" /> Live ↓
             </div>
             <LiveMbps mbps={totalRx} sampled={ratesSampled} />
           </div>
-          <div className="rounded-2xl bg-muted/55 px-3 py-2.5">
+          <div className="rounded-lg bg-muted/55 px-3 py-2.5">
             <div className="mb-1 flex items-center gap-1 text-[11px] uppercase tracking-wider text-muted-foreground">
               <ArrowUp className="h-3.5 w-3.5 text-[var(--accent-2)]" /> Live ↑
             </div>
@@ -300,7 +300,7 @@ export function InternetWidget() {
         </div>
 
         {/* Latency sparkline */}
-        <div className="rounded-2xl bg-muted/40 px-3 py-2.5">
+        <div className="rounded-lg bg-muted/40 px-3 py-2.5">
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Latency timeline
           </p>
@@ -386,13 +386,13 @@ export function InternetWidget() {
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-2xl bg-muted/55 px-3 py-2.5">
+              <div className="rounded-lg bg-muted/55 px-3 py-2.5">
                 <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Jitter</p>
                 <p className="stat-value mt-1 text-lg">
                   {result?.jitterMs != null ? `${result.jitterMs} ms` : "—"}
                 </p>
               </div>
-              <div className="rounded-2xl bg-muted/55 px-3 py-2.5">
+              <div className="rounded-lg bg-muted/55 px-3 py-2.5">
                 <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Path</p>
                 <p className="stat-value mt-1 text-lg">
                   {result?.internetPath ? "Internet" : "Local"}
@@ -408,13 +408,13 @@ export function InternetWidget() {
         {/* Require ≥2 runs before chart chrome — avoid empty bar shells */}
         {history.length >= 2 ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-muted/40 px-3 py-2.5">
+            <div className="rounded-lg bg-muted/40 px-3 py-2.5">
               <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Download history
               </p>
               <SparkBars data={downHist} height={72} />
             </div>
-            <div className="rounded-2xl bg-muted/40 px-3 py-2.5">
+            <div className="rounded-lg bg-muted/40 px-3 py-2.5">
               <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Upload history
               </p>

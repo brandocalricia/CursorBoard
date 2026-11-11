@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Outfit } from "next/font/google";
+import { DM_Sans, JetBrains_Mono, Syne } from "next/font/google";
 import { AppProviders } from "@/components/providers/AppProviders";
 import "./globals.css";
 
-const geistSans = Geist({
+const geistSans = DM_Sans({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
+const geistMono = JetBrains_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
-const display = Outfit({
+const display = Syne({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["500", "600", "700"],

@@ -102,13 +102,13 @@ export function HostWidget() {
       {data ? (
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="flex justify-center rounded-2xl bg-muted/50 py-2">
+            <div className="flex justify-center rounded-lg border border-border bg-muted/40 py-2">
               <Donut value={data.cpu.usagePercent ?? 0} label="CPU" />
             </div>
-            <div className="flex justify-center rounded-2xl bg-muted/50 py-2">
+            <div className="flex justify-center rounded-lg border border-border bg-muted/40 py-2">
               <Donut value={memPct} label="RAM" />
             </div>
-            <div className="col-span-2 space-y-1 rounded-2xl bg-muted/50 px-3 py-2.5">
+            <div className="col-span-2 space-y-1 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 CPU · recent
               </p>
@@ -123,7 +123,7 @@ export function HostWidget() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2 rounded-2xl bg-muted/40 px-3 py-2.5">
+            <div className="space-y-2 rounded-lg bg-muted/40 px-3 py-2.5">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <Cpu className="h-3.5 w-3.5" /> CPU
               </div>
@@ -140,7 +140,7 @@ export function HostWidget() {
                 {formatPercent(data.cpu.usagePercent)}
               </p>
             </div>
-            <div className="space-y-2 rounded-2xl bg-muted/40 px-3 py-2.5">
+            <div className="space-y-2 rounded-lg bg-muted/40 px-3 py-2.5">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <Memory className="h-3.5 w-3.5" /> Memory
               </div>

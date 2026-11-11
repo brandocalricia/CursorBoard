@@ -31,7 +31,7 @@ export function DetailSheet({ item, onClose, loading }: Props) {
           <motion.button
             type="button"
             aria-label="Dismiss detail overlay"
-            className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px]"
+            className="fixed inset-0 z-50 bg-black/70"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -106,7 +106,7 @@ export function DetailSheet({ item, onClose, loading }: Props) {
                   href={item.linkUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="btn-accent inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold"
+                  className="btn-accent inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm"
                 >
                   {item.linkLabel ?? "Open original"}
                   <ExternalLink className="h-4 w-4" />

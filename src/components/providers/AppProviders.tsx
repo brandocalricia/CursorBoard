@@ -23,7 +23,7 @@ const SettingsContext = createContext<Ctx | null>(null);
 
 const FALLBACK: UserSettings = {
   theme: "dark",
-  accent: "#14B8A6",
+  accent: "#5CEE15",
   density: "comfortable",
   layoutPreset: "balanced",
   enabledWidgets: [...WIDGET_IDS],

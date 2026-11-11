@@ -91,7 +91,7 @@ function Ring({
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-2xl bg-muted/60 px-3 py-2.5">
+    <div className="rounded-lg bg-muted/60 px-3 py-2.5">
       <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="stat-value mt-1 text-lg text-foreground">{value}</p>
       {hint ? <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p> : null}

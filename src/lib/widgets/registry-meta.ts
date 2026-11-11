@@ -10,7 +10,7 @@ export const WIDGET_IDS = [
 export type WidgetId = (typeof WIDGET_IDS)[number];
 
 /** Bump when shipping widgets that existing installs should auto-enable once. */
-export const SETTINGS_VERSION = 3;
+export const SETTINGS_VERSION = 4;
 
 export type WidgetMeta = {
   id: WidgetId;

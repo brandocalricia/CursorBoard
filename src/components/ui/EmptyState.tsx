@@ -2,43 +2,36 @@
 
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
-import { Illustration, type IllustrationName } from "@/components/ui/Illustration";
 
 type Props = {
   icon?: ReactNode;
-  illustration?: IllustrationName;
+  /** @deprecated CryptoZen empty states are text-first; illustrations ignored */
+  illustration?: string;
   title: string;
   body: string;
   action?: ReactNode;
 };
 
-export function EmptyState({ icon, illustration = "empty", title, body, action }: Props) {
+export function EmptyState({ icon, title, body, action }: Props) {
   return (
     <motion.div
-      className="flex min-h-[11rem] flex-col items-center justify-center gap-3 px-4 py-5 text-center"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 360, damping: 28 }}
+      className="flex min-h-[9rem] flex-col items-start justify-center gap-2 px-1 py-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
     >
-      {illustration ? (
-        <motion.div
-          className="w-full max-w-[200px]"
-          initial={{ opacity: 0, scale: 0.92 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.05, type: "spring", stiffness: 280, damping: 22 }}
-        >
-          <Illustration name={illustration} className="mx-auto h-28 w-auto" alt="" />
-        </motion.div>
-      ) : icon ? (
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-muted/60 text-[var(--accent)]">
+      {icon ? (
+        <div className="mb-1 flex h-8 w-8 items-center justify-center rounded-md border border-border bg-muted text-[var(--accent)]">
           {icon}
         </div>
-      ) : null}
+      ) : (
+        <div className="mb-1 h-0.5 w-8 bg-[var(--accent)]" aria-hidden />
+      )}
       <div>
         <p className="text-sm font-semibold text-foreground">{title}</p>
-        <p className="mt-1 max-w-[18rem] text-xs leading-relaxed text-muted-foreground">{body}</p>
+        <p className="mt-1 max-w-[22rem] text-xs leading-relaxed text-muted-foreground">{body}</p>
       </div>
-      {action}
+      {action ? <div className="mt-1">{action}</div> : null}
     </motion.div>
   );
 }
