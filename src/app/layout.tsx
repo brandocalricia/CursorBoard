@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, JetBrains_Mono, Syne } from "next/font/google";
+import { DM_Sans, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import { AppProviders } from "@/components/providers/AppProviders";
 import "./globals.css";
 
@@ -14,7 +14,8 @@ const geistMono = JetBrains_Mono({
   weight: ["400", "500", "600"],
 });
 
-const display = Syne({
+// Space Grotesk (not Syne) — Syne failed next/font Google loader on CI
+const display = Space_Grotesk({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
