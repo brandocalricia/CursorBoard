@@ -114,7 +114,11 @@ export async function measureUpload(
 ): Promise<{ mbps: number; internetPath: boolean }> {
   const size = 512 * 1024;
   const body = new Uint8Array(size);
-  crypto.getRandomValues(body);
+  // Browsers cap getRandomValues at 65536 bytes per call.
+  const chunk = 65536;
+  for (let i = 0; i < body.length; i += chunk) {
+    crypto.getRandomValues(body.subarray(i, Math.min(i + chunk, body.length)));
+  }
 
   // Prefer Cloudflare upload endpoint when CORS allows; else local echo.
   try {
