@@ -33,9 +33,11 @@ const FALLBACK: UserSettings = {
   accent: "#5CEE15",
   density: "comfortable",
   layoutPreset: "balanced",
+  themePack: "cryptozen",
   enabledWidgets: [...WIDGET_IDS],
   widgetOrder: [...WIDGET_IDS],
   widgetSpans: {},
+  weatherCoords: null,
 };
 
 function persist(next: UserSettings) {
@@ -77,20 +79,35 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
+    const PACK_ACCENTS: Record<string, string> = {
+      cryptozen: "#5CEE15",
+      amber: "#f59e0b",
+      monokai: "#a6e22e",
+      horizon: "#7dd3fc",
+      obsidian: "#e5e7eb",
+      daylight: "#0f766e",
+    };
     const apply = () => {
+      const pack = settings.themePack ?? "cryptozen";
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const forceLight = pack === "daylight";
       const dark =
-        settings.theme === "dark" || (settings.theme === "system" && prefersDark);
-      root.classList.toggle("light", !dark);
-      root.classList.toggle("dark", dark);
-      root.style.setProperty("--accent", settings.accent);
+        !forceLight &&
+        (settings.theme === "dark" || (settings.theme === "system" && prefersDark));
+      root.classList.toggle("light", !dark || forceLight);
+      root.classList.toggle("dark", dark && !forceLight);
+      root.dataset.themePack = pack;
+      root.style.setProperty(
+        "--accent",
+        pack !== "cryptozen" ? PACK_ACCENTS[pack] ?? settings.accent : settings.accent,
+      );
       root.dataset.density = settings.density;
     };
     apply();
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
-  }, [settings.theme, settings.accent, settings.density]);
+  }, [settings.theme, settings.accent, settings.density, settings.themePack]);
 
   const setSettings = useCallback(async (patch: Partial<UserSettings>) => {
     setLocal((prev) => {

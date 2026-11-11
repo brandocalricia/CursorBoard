@@ -35,8 +35,49 @@ html.light {
   --muted-foreground: #5c6358;
   --border: rgba(2, 2, 3, 0.08);
   --border-strong: rgba(2, 2, 3, 0.14);
+  --accent-2: #9ab89a;
   --accent-foreground: #020203;
+  --warning: #c2410c;
+  --danger: #dc2626;
   --grid-bg: #f3f4f2;
+}
+
+/* Named theme packs — set via data-theme-pack on <html> */
+html[data-theme-pack="amber"] {
+  --accent: #f59e0b;
+  --accent-2: #7c4a12;
+  --warning: #fb923c;
+}
+html[data-theme-pack="monokai"] {
+  --accent: #a6e22e;
+  --accent-2: #3e4a28;
+  --background: #1e1f1c;
+  --grid-bg: #1e1f1c;
+  --card: #272822;
+}
+html[data-theme-pack="horizon"] {
+  --accent: #7dd3fc;
+  --accent-2: #334155;
+  --background: #0b1220;
+  --grid-bg: #0b1220;
+  --card: #111827;
+}
+html[data-theme-pack="obsidian"] {
+  --accent: #e5e7eb;
+  --accent-2: #4b5563;
+  --background: #09090b;
+  --grid-bg: #09090b;
+  --card: #18181b;
+}
+html[data-theme-pack="daylight"] {
+  --accent: #0f766e;
+  --accent-2: #99f6e4;
+  --background: #f8fafc;
+  --grid-bg: #f8fafc;
+  --card: #ffffff;
+  --foreground: #0f172a;
+  --muted: #e2e8f0;
+  --muted-foreground: #475569;
 }
 
 @theme inline {
@@ -195,8 +236,16 @@ body {
 }
 
 .detail-sheet {
-  background: #08090a;
+  background: var(--card-solid);
   border-left: 1px solid var(--border-strong);
+}
+
+html.light .detail-sheet {
+  background: #ffffff;
+}
+
+html.light .zen-rail {
+  background: color-mix(in oklab, #ffffff 92%, transparent);
 }
 
 .meta-chip {
@@ -378,6 +427,62 @@ body {
   border-right: 1px solid var(--border);
   background: color-mix(in oklab, #050506 88%, transparent);
   backdrop-filter: blur(10px);
+}
+
+/* Text shimmer (shadcn-style) — pure CSS, reduced-motion safe */
+.shimmer {
+  --shimmer-color: color-mix(in oklab, currentColor 55%, white);
+  --shimmer-duration: 2s;
+  --shimmer-spread: calc(3ch + 40px);
+  --shimmer-angle: 20deg;
+  --shimmer-text-fill: transparent;
+  color: inherit;
+  background-image: linear-gradient(
+    var(--shimmer-angle),
+    transparent 0%,
+    transparent 35%,
+    var(--shimmer-color) 50%,
+    transparent 65%,
+    transparent 100%
+  );
+  background-size: calc(200% + var(--shimmer-spread)) 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--shimmer-text-fill);
+  animation: tw-shimmer var(--shimmer-duration) linear infinite;
+}
+
+.shimmer-once {
+  animation-iteration-count: 1;
+}
+
+.shimmer-reverse {
+  animation-direction: reverse;
+}
+
+.shimmer-none {
+  --shimmer-text-fill: currentColor;
+  background-image: none;
+  animation: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+@keyframes tw-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+    --shimmer-text-fill: currentColor;
+    -webkit-text-fill-color: currentColor;
+    background-image: none;
+  }
 }
 
 .zen-mark {

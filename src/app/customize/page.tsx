@@ -1,162 +1,297 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, CaretDown, CaretUp } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { ArrowLeft, DotsSixVertical } from "@phosphor-icons/react";
 import { useSettings } from "@/components/providers/AppProviders";
+import { ContainerScroll } from "@/components/ui/container-scroll-animation";
+import { AssembleTitle } from "@/components/ui/text-scroll-animation";
 import {
   WIDGET_META,
   normalizeWidgetOrder,
   type WidgetId,
 } from "@/lib/widgets/registry-meta";
-import type { Density, LayoutPreset, ThemeMode, WidgetSpan } from "@/lib/types";
+import type { Density, LayoutPreset, ThemeMode, ThemePack, WidgetSpan } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const ACCENTS = ["#5CEE15", "#14B8A6", "#22D3EE", "#E34D08", "#D9D9DA"];
+const PACKS: { id: ThemePack; label: string }[] = [
+  { id: "cryptozen", label: "CryptoZen Lime" },
+  { id: "amber", label: "Amber Desk" },
+  { id: "monokai", label: "Monokai Emerald" },
+  { id: "horizon", label: "Horizon Steel" },
+  { id: "obsidian", label: "Obsidian Silver" },
+  { id: "daylight", label: "Daylight" },
+];
+
+function SortableRow({
+  id,
+  on,
+  span,
+  title,
+  description,
+  onToggle,
+  onSpan,
+}: {
+  id: WidgetId;
+  on: boolean;
+  span: WidgetSpan;
+  title: string;
+  description: string;
+  onToggle: () => void;
+  onSpan: (s: WidgetSpan) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex flex-col gap-3 rounded-lg border border-border bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between",
+        !on && "opacity-55",
+        isDragging && "z-10 border-[var(--accent)] shadow-lg",
+      )}
+    >
+      <div className="flex min-w-0 items-start gap-2">
+        <button
+          type="button"
+          className="mt-0.5 cursor-grab touch-none rounded p-1 text-muted-foreground active:cursor-grabbing"
+          aria-label={`Drag ${title}`}
+          {...attributes}
+          {...listeners}
+        >
+          <DotsSixVertical size={18} weight="bold" />
+        </button>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 pl-8 sm:pl-0">
+        <div className="flex rounded-md border border-border p-0.5">
+          {([1, 2, 3] as WidgetSpan[]).map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={cn(
+                "h-7 min-w-8 rounded px-2 text-xs font-semibold",
+                span === s
+                  ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              onClick={() => onSpan(s)}
+            >
+              {s}×
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className={cn(
+            "h-7 rounded-md border px-3 text-xs font-semibold",
+            on
+              ? "border-[color-mix(in_oklab,var(--accent)_40%,transparent)] text-[var(--accent)]"
+              : "border-border text-muted-foreground",
+          )}
+          onClick={onToggle}
+        >
+          {on ? "On" : "Off"}
+        </button>
+      </div>
+    </li>
+  );
+}
 
 export default function CustomizePage() {
-  const { settings, setSettings, toggleWidget, moveWidget, setWidgetSpan } =
-    useSettings();
+  const { settings, setSettings, toggleWidget, setWidgetSpan } = useSettings();
   const order = normalizeWidgetOrder(settings.widgetOrder);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = order.indexOf(active.id as WidgetId);
+    const newIndex = order.indexOf(over.id as WidgetId);
+    if (oldIndex < 0 || newIndex < 0) return;
+    void setSettings({ widgetOrder: arrayMove(order, oldIndex, newIndex) });
+  }
 
   return (
     <div className="zen-atmosphere min-h-[100svh]">
       <div className="zen-scan" aria-hidden />
       <div className="relative z-[2] mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link
-              href="/"
-              className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground transition hover:text-[var(--accent)]"
-            >
-              <ArrowLeft size={14} weight="bold" />
-              Dashboard
-            </Link>
-            <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight">
-              Layout studio
-            </h1>
-            <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
-              Reorder every panel, set column width, toggle visibility, and tune
-              theme density. Changes save instantly to this machine.
-            </p>
-          </div>
+        <div className="mb-6">
           <Link
             href="/"
-            className="btn-accent inline-flex h-9 items-center rounded-md px-4 text-sm"
+            className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground transition hover:text-[var(--accent)]"
           >
-            Back to live board
+            <ArrowLeft size={14} weight="bold" />
+            Dashboard
           </Link>
+          <AssembleTitle text="Layout studio" />
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            Drag widgets into place, set column width, toggle visibility, and
+            switch theme packs. Changes save instantly on this machine.
+          </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-          <section className="hd-card space-y-3 p-4 sm:p-5">
-            <header className="mb-2 flex items-end justify-between gap-2">
-              <div>
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                  Widget order & size
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Up/down moves position. Span 1–3 controls width on large screens.
-                </p>
-              </div>
-            </header>
-
-            <ul className="space-y-2">
-              {order.map((id, index) => {
+        <ContainerScroll
+          titleComponent={
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Live grid preview
+            </p>
+          }
+        >
+          <div className="grid grid-cols-6 gap-1.5 p-3">
+            {order
+              .filter((id) => settings.enabledWidgets.includes(id))
+              .map((id) => {
                 const meta = WIDGET_META.find((w) => w.id === id)!;
-                const on = settings.enabledWidgets.includes(id);
                 const span = (settings.widgetSpans?.[id] ??
                   Math.min(meta.colSpan, 3)) as WidgetSpan;
                 return (
-                  <li
+                  <div
                     key={id}
-                    className={cn(
-                      "flex flex-col gap-3 rounded-lg border border-border bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between",
-                      !on && "opacity-55",
-                    )}
+                    className="rounded-md border border-border bg-[color-mix(in_oklab,var(--accent)_12%,transparent)] px-2 py-3 text-[10px] font-semibold uppercase tracking-wide text-foreground"
+                    style={{ gridColumn: `span ${Math.min(span * 2, 6)}` }}
                   >
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{meta.title}</p>
-                      <p className="text-xs text-muted-foreground">{meta.description}</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          aria-label={`Move ${meta.title} up`}
-                          disabled={index === 0}
-                          onClick={() => void moveWidget(id as WidgetId, -1)}
-                        >
-                          <CaretUp size={16} weight="bold" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          aria-label={`Move ${meta.title} down`}
-                          disabled={index === order.length - 1}
-                          onClick={() => void moveWidget(id as WidgetId, 1)}
-                        >
-                          <CaretDown size={16} weight="bold" />
-                        </Button>
-                      </div>
-                      <div className="flex gap-1">
-                        {([1, 2, 3] as WidgetSpan[]).map((s) => (
-                          <Button
-                            key={s}
-                            size="sm"
-                            variant={span === s ? "accent" : "outline"}
-                            onClick={() => void setWidgetSpan(id as WidgetId, s)}
-                            aria-label={`Span ${s} for ${meta.title}`}
-                          >
-                            {s}×
-                          </Button>
-                        ))}
-                      </div>
-                      <Button
-                        size="sm"
-                        variant={on ? "accent" : "outline"}
-                        onClick={() => void toggleWidget(id)}
-                        aria-pressed={on}
-                      >
-                        {on ? "On" : "Off"}
-                      </Button>
-                    </div>
-                  </li>
+                    {meta.title}
+                  </div>
                 );
               })}
-            </ul>
+          </div>
+        </ContainerScroll>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_280px]">
+          <section className="hd-card space-y-3 p-4 sm:p-5">
+            <header className="mb-2">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                Drag widgets
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Grab the handle to reorder. Span 1–3 controls width on large screens.
+              </p>
+            </header>
+
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onDragEnd}
+            >
+              <SortableContext items={order} strategy={verticalListSortingStrategy}>
+                <ul className="space-y-2">
+                  {order.map((id) => {
+                    const meta = WIDGET_META.find((w) => w.id === id)!;
+                    const on = settings.enabledWidgets.includes(id);
+                    const span = (settings.widgetSpans?.[id] ??
+                      Math.min(meta.colSpan, 3)) as WidgetSpan;
+                    return (
+                      <SortableRow
+                        key={id}
+                        id={id}
+                        on={on}
+                        span={span}
+                        title={meta.title}
+                        description={meta.description}
+                        onToggle={() => void toggleWidget(id)}
+                        onSpan={(s) => void setWidgetSpan(id, s)}
+                      />
+                    );
+                  })}
+                </ul>
+              </SortableContext>
+            </DndContext>
           </section>
 
           <aside className="space-y-4">
             <section className="hd-card space-y-3 p-4">
               <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                Theme
+                Theme pack
               </h2>
-              <div className="flex flex-wrap gap-2">
-                {(["dark", "light", "system"] as ThemeMode[]).map((theme) => (
-                  <Button
-                    key={theme}
-                    size="sm"
-                    variant={settings.theme === theme ? "accent" : "outline"}
-                    onClick={() => void setSettings({ theme })}
+              <div className="grid gap-1.5">
+                {PACKS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-left text-xs font-semibold",
+                      (settings.themePack ?? "cryptozen") === p.id
+                        ? "border-[var(--accent)] text-[var(--accent)]"
+                        : "border-border text-muted-foreground hover:text-foreground",
+                    )}
+                    onClick={() => void setSettings({ themePack: p.id })}
                   >
-                    {theme}
-                  </Button>
+                    {p.label}
+                  </button>
                 ))}
               </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {ACCENTS.map((accent) => (
+            </section>
+
+            <section className="hd-card space-y-3 p-4">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                Mode & accent
+              </h2>
+              <div className="flex flex-wrap gap-1.5">
+                {(["dark", "light", "system"] as ThemeMode[]).map((t) => (
                   <button
-                    key={accent}
+                    key={t}
                     type="button"
-                    aria-label={`Accent ${accent}`}
                     className={cn(
-                      "h-8 w-8 rounded-md border-2 transition-transform hover:scale-105",
-                      settings.accent === accent ? "border-foreground" : "border-transparent",
+                      "rounded-md border px-2.5 py-1.5 text-xs capitalize",
+                      settings.theme === t
+                        ? "border-[var(--accent)] text-[var(--accent)]"
+                        : "border-border text-muted-foreground",
                     )}
-                    style={{ background: accent }}
-                    onClick={() => void setSettings({ accent })}
+                    onClick={() => void setSettings({ theme: t })}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ACCENTS.map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    aria-label={`Accent ${a}`}
+                    className={cn(
+                      "h-7 w-7 rounded-full border-2",
+                      settings.accent.toLowerCase() === a.toLowerCase()
+                        ? "border-foreground"
+                        : "border-transparent",
+                    )}
+                    style={{ background: a }}
+                    onClick={() =>
+                      void setSettings({ accent: a, themePack: "cryptozen" })
+                    }
                   />
                 ))}
               </div>
@@ -164,75 +299,50 @@ export default function CustomizePage() {
 
             <section className="hd-card space-y-3 p-4">
               <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                Density
+                Density & grid
               </h2>
-              <div className="flex flex-wrap gap-2">
-                {(["compact", "comfortable", "spacious"] as Density[]).map((density) => (
-                  <Button
-                    key={density}
-                    size="sm"
-                    variant={settings.density === density ? "accent" : "outline"}
-                    onClick={() => void setSettings({ density })}
+              <div className="flex flex-wrap gap-1.5">
+                {(["compact", "comfortable", "spacious"] as Density[]).map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={cn(
+                      "rounded-md border px-2.5 py-1.5 text-xs capitalize",
+                      settings.density === d
+                        ? "border-[var(--accent)] text-[var(--accent)]"
+                        : "border-border text-muted-foreground",
+                    )}
+                    onClick={() => void setSettings({ density: d })}
                   >
-                    {density}
-                  </Button>
+                    {d}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(["focus", "balanced", "dense"] as LayoutPreset[]).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={cn(
+                      "rounded-md border px-2.5 py-1.5 text-xs capitalize",
+                      settings.layoutPreset === p
+                        ? "border-[var(--accent)] text-[var(--accent)]"
+                        : "border-border text-muted-foreground",
+                    )}
+                    onClick={() => void setSettings({ layoutPreset: p })}
+                  >
+                    {p}
+                  </button>
                 ))}
               </div>
             </section>
 
-            <section className="hd-card space-y-3 p-4">
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                Grid preset
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {(["focus", "balanced", "dense"] as LayoutPreset[]).map((layoutPreset) => (
-                  <Button
-                    key={layoutPreset}
-                    size="sm"
-                    variant={settings.layoutPreset === layoutPreset ? "accent" : "outline"}
-                    onClick={() => void setSettings({ layoutPreset })}
-                  >
-                    {layoutPreset}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
-                Preset sets the column count. Per-widget span overrides still apply.
-              </p>
-            </section>
-
-            <section className="hd-card space-y-2 p-4 text-xs leading-relaxed text-muted-foreground">
-              <p className="font-medium text-foreground">Preview</p>
-              <div
-                className="grid gap-1.5"
-                style={{
-                  gridTemplateColumns: `repeat(${
-                    settings.layoutPreset === "dense"
-                      ? 6
-                      : settings.layoutPreset === "focus"
-                        ? 3
-                        : 4
-                  }, minmax(0, 1fr))`,
-                }}
-              >
-                {order
-                  .filter((id) => settings.enabledWidgets.includes(id))
-                  .map((id) => {
-                    const meta = WIDGET_META.find((w) => w.id === id)!;
-                    const span =
-                      settings.widgetSpans?.[id] ?? Math.min(meta.colSpan, 3);
-                    return (
-                      <div
-                        key={id}
-                        className="rounded-sm bg-[color-mix(in_oklab,var(--accent)_22%,var(--muted))] px-1.5 py-2 text-[9px] font-semibold uppercase tracking-wide text-foreground"
-                        style={{ gridColumn: `span ${span}` }}
-                      >
-                        {meta.title}
-                      </div>
-                    );
-                  })}
-              </div>
-            </section>
+            <Link
+              href="/"
+              className="btn-accent inline-flex h-10 w-full items-center justify-center rounded-md text-sm"
+            >
+              Back to live board
+            </Link>
           </aside>
         </div>
       </div>

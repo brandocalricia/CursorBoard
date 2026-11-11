@@ -1,37 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Activity, ChevronRight, GitPullRequest } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { WidgetShell } from "@/components/dashboard/WidgetShell";
 import { DetailSheet } from "@/components/dashboard/DetailSheet";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SparkBars } from "@/components/ui/MiniCharts";
+import { useLiveQuery } from "@/hooks/useLiveQuery";
 import type { DetailItem, GitHubPayload } from "@/lib/types";
 
 export function GitHubWidget() {
-  const [data, setData] = useState<GitHubPayload | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<DetailItem | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/github", { cache: "no-store" });
-      if (!res.ok) throw new Error("Couldn’t load GitHub");
-      setData((await res.json()) as GitHubPayload);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
-    } finally {
-      setLoading(false);
-    }
+  const fetcher = useCallback(async () => {
+    const res = await fetch("/api/github", { cache: "no-store" });
+    if (!res.ok) throw new Error("Couldn’t load GitHub");
+    return (await res.json()) as GitHubPayload;
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data, error, loading, refresh } = useLiveQuery({
+    fetcher,
+    intervalMs: 60_000,
+  });
+
+  const load = refresh;
 
   const activitySeries = useMemo(() => {
     const buckets = new Map<string, number>();

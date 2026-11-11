@@ -58,7 +58,7 @@ test.describe("Visual authorization loop", () => {
     const canvas = page.locator("section").filter({
       has: page.getByRole("heading", { name: "Canvas" }),
     });
-    await canvas.getByRole("button").first().click();
+    await canvas.locator("button.row-item").first().click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.screenshot({ path: path.join(SHOTS, "dash-detail.png") });
   });

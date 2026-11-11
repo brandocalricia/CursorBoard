@@ -26,40 +26,73 @@ const SAMPLE_DETAILS: Record<string, { html: string; text: string }> = {
   },
 };
 
+function canvasBase(): string {
+  return (
+    process.env.CANVAS_BASE_URL?.trim()?.replace(/\/$/, "") ||
+    "https://canvas.du.edu"
+  );
+}
+
+/** Prefer Canvas html_url; otherwise build the exact assignment path. */
+export function assignmentDeepLink(
+  base: string,
+  courseId: string | number | undefined,
+  assignmentId: string | number,
+  htmlUrl?: string | null,
+): string {
+  if (htmlUrl && htmlUrl !== "#" && !htmlUrl.endsWith("://canvas.du.edu") && htmlUrl !== base) {
+    try {
+      const u = new URL(htmlUrl);
+      if (u.pathname && u.pathname !== "/") return htmlUrl;
+    } catch {
+      /* fall through */
+    }
+  }
+  if (courseId != null && String(courseId)) {
+    return `${base}/courses/${courseId}/assignments/${assignmentId}`;
+  }
+  return `${base}/`;
+}
+
 const SAMPLE: CanvasPayload = {
   assignments: [
     {
       id: "a1",
+      courseId: "320",
       name: "Systems Midterm Review",
       course: "CS 320",
       dueAt: new Date(Date.now() + 2 * 86400_000).toISOString(),
       points: 100,
-      htmlUrl: "https://canvas.du.edu",
+      htmlUrl: "https://canvas.du.edu/courses/320/assignments/a1",
       descriptionHtml: SAMPLE_DETAILS.a1!.html,
       descriptionText: SAMPLE_DETAILS.a1!.text,
     },
     {
       id: "a2",
+      courseId: "210",
       name: "Design Portfolio Critique",
       course: "HCI 210",
       dueAt: new Date(Date.now() + 5 * 86400_000).toISOString(),
       points: 50,
-      htmlUrl: "https://canvas.du.edu",
+      htmlUrl: "https://canvas.du.edu/courses/210/assignments/a2",
       descriptionHtml: SAMPLE_DETAILS.a2!.html,
       descriptionText: SAMPLE_DETAILS.a2!.text,
     },
     {
       id: "a3",
+      courseId: "320",
       name: "Lab 06: Concurrent Structures",
       course: "CS 320",
       dueAt: new Date(Date.now() + 8 * 86400_000).toISOString(),
       points: 25,
-      htmlUrl: "https://canvas.du.edu",
+      htmlUrl: "https://canvas.du.edu/courses/320/assignments/a3",
       descriptionHtml: SAMPLE_DETAILS.a3!.html,
       descriptionText: SAMPLE_DETAILS.a3!.text,
     },
   ],
   sample: true,
+  authStatus: "sample",
+  canvasBaseUrl: "https://canvas.du.edu",
 };
 
 type CanvasAssignmentRaw = {
@@ -169,14 +202,20 @@ function toAssignment(t: TodoItem): CanvasAssignment | null {
   const a = t.assignment;
   if (!a?.id || !a.name) return null;
   const descriptionHtml = a.description ?? null;
+  const courseId = t.course_id ? String(t.course_id) : undefined;
   return {
     id: String(a.id),
-    courseId: t.course_id ? String(t.course_id) : undefined,
+    courseId,
     name: a.name,
     course: t.context_short_name || t.context_name || "Course",
     dueAt: a.due_at ?? null,
     points: a.points_possible ?? null,
-    htmlUrl: a.html_url || t.html_url || "#",
+    htmlUrl: assignmentDeepLink(
+      canvasBase(),
+      courseId,
+      a.id,
+      a.html_url || t.html_url,
+    ),
     descriptionHtml,
     descriptionText: htmlToText(descriptionHtml),
   };
@@ -204,22 +243,59 @@ async function fetchViaComposio(): Promise<CanvasPayload | null> {
   const payload: CanvasPayload = {
     assignments: assignments.slice(0, 16),
     sample: false,
+    authStatus: "ok",
+    canvasBaseUrl: canvasBase(),
   };
   cachePayload(payload);
   return payload;
 }
 
-async function fetchViaManualToken(): Promise<CanvasPayload | null> {
+type ManualResult =
+  | { ok: true; payload: CanvasPayload }
+  | { ok: false; status: CanvasPayload["authStatus"]; message: string };
+
+async function fetchViaManualToken(): Promise<ManualResult> {
   const token = process.env.CANVAS_API_TOKEN?.trim();
   const base = process.env.CANVAS_BASE_URL?.trim()?.replace(/\/$/, "");
-  if (!token || !base) return null;
+  if (!token || !base) {
+    return {
+      ok: false,
+      status: "token_missing",
+      message: "CANVAS_API_TOKEN or CANVAS_BASE_URL is missing in .env.local",
+    };
+  }
 
   const headers = { Authorization: `Bearer ${token}` };
-  const coursesRes = await fetch(
-    `${base}/api/v1/courses?enrollment_state=active&per_page=20`,
-    { headers, cache: "no-store" },
-  );
-  if (!coursesRes.ok) return null;
+  let coursesRes: Response;
+  try {
+    coursesRes = await fetch(
+      `${base}/api/v1/courses?enrollment_state=active&per_page=20`,
+      { headers, cache: "no-store" },
+    );
+  } catch {
+    return {
+      ok: false,
+      status: "network_error",
+      message: "Could not reach Canvas. Check your network and try again.",
+    };
+  }
+
+  if (coursesRes.status === 401 || coursesRes.status === 403) {
+    return {
+      ok: false,
+      status: "token_expired",
+      message:
+        "Your Canvas access token was rejected (expired or revoked). DU tokens last ~30 days — renew it below.",
+    };
+  }
+  if (!coursesRes.ok) {
+    return {
+      ok: false,
+      status: "unauthorized",
+      message: `Canvas returned HTTP ${coursesRes.status}.`,
+    };
+  }
+
   const courses = (await coursesRes.json()) as Array<{ id: number; name: string }>;
 
   const assignments: CanvasAssignment[] = [];
@@ -239,7 +315,7 @@ async function fetchViaManualToken(): Promise<CanvasPayload | null> {
           course: course.name,
           dueAt: a.due_at,
           points: a.points_possible,
-          htmlUrl: a.html_url,
+          htmlUrl: assignmentDeepLink(base, course.id, a.id, a.html_url),
           descriptionHtml: a.description ?? null,
           descriptionText: htmlToText(a.description),
         });
@@ -256,9 +332,11 @@ async function fetchViaManualToken(): Promise<CanvasPayload | null> {
   const payload: CanvasPayload = {
     assignments: assignments.slice(0, 12),
     sample: false,
+    authStatus: "ok",
+    canvasBaseUrl: base,
   };
   cachePayload(payload);
-  return payload;
+  return { ok: true, payload };
 }
 
 export async function fetchCanvas(): Promise<CanvasPayload> {
@@ -266,19 +344,57 @@ export async function fetchCanvas(): Promise<CanvasPayload> {
   if (viaComposio) return viaComposio;
 
   const viaToken = await fetchViaManualToken();
-  if (viaToken) return viaToken;
+  if (viaToken.ok) return viaToken.payload;
 
-  return SAMPLE;
+  // Token configured but expired/rejected — surface renewal UI, not silent sample
+  if (
+    viaToken.status === "token_expired" ||
+    viaToken.status === "unauthorized"
+  ) {
+    return {
+      assignments: [],
+      sample: false,
+      authStatus: viaToken.status,
+      authMessage: viaToken.message,
+      canvasBaseUrl: canvasBase(),
+    };
+  }
+
+  // No usable live source — sample for first-run preview
+  return {
+    ...SAMPLE,
+    authStatus:
+      viaToken.status === "token_missing" && !isComposioConfigured()
+        ? "token_missing"
+        : viaToken.status ?? "sample",
+    authMessage: viaToken.message,
+    canvasBaseUrl: canvasBase(),
+  };
+}
+
+function withAssignmentLink(
+  detail: DetailItem,
+  courseId?: string,
+  htmlUrl?: string | null,
+): DetailItem {
+  return {
+    ...detail,
+    linkUrl: assignmentDeepLink(canvasBase(), courseId, detail.id, htmlUrl ?? detail.linkUrl),
+    linkLabel: detail.linkLabel ?? "Open assignment in Canvas",
+  };
 }
 
 export async function fetchCanvasAssignmentDetail(
   id: string,
 ): Promise<DetailItem | null> {
-  const cached = readCachedDetail(id);
-  if (cached?.bodyHtml || cached?.bodyText) return cached;
-
   const list = await fetchCanvas();
   const fromList = list.assignments.find((a) => a.id === id);
+
+  const cached = readCachedDetail(id);
+  if (cached?.bodyHtml || cached?.bodyText) {
+    // Re-stamp exact deep link — SQLite may hold older home-only URLs
+    return withAssignmentLink(cached, fromList?.courseId, fromList?.htmlUrl);
+  }
 
   if (fromList?.descriptionHtml || fromList?.descriptionText) {
     const detail: DetailItem = {
@@ -292,8 +408,13 @@ export async function fetchCanvasAssignmentDetail(
       ].filter(Boolean),
       bodyHtml: fromList.descriptionHtml,
       bodyText: fromList.descriptionText,
-      linkUrl: fromList.htmlUrl !== "#" ? fromList.htmlUrl : undefined,
-      linkLabel: "Open in Canvas",
+      linkUrl: assignmentDeepLink(
+        canvasBase(),
+        fromList.courseId,
+        id,
+        fromList.htmlUrl,
+      ),
+      linkLabel: "Open assignment in Canvas",
     };
     cacheDetail(id, detail);
     return detail;
@@ -320,8 +441,13 @@ export async function fetchCanvasAssignmentDetail(
           ].filter(Boolean),
           bodyHtml: raw.description ?? null,
           bodyText: htmlToText(raw.description),
-          linkUrl: raw.html_url,
-          linkLabel: "Open in Canvas",
+          linkUrl: assignmentDeepLink(
+            canvasBase(),
+            fromList.courseId ?? raw.course_id,
+            id,
+            raw.html_url,
+          ),
+          linkLabel: "Open assignment in Canvas",
         };
         cacheDetail(id, detail);
         return detail;
@@ -350,8 +476,8 @@ export async function fetchCanvasAssignmentDetail(
         ].filter(Boolean),
         bodyHtml: raw.description ?? null,
         bodyText: htmlToText(raw.description),
-        linkUrl: raw.html_url,
-        linkLabel: "Open in Canvas",
+        linkUrl: assignmentDeepLink(base, fromList.courseId, id, raw.html_url),
+        linkLabel: "Open assignment in Canvas",
       };
       cacheDetail(id, detail);
       return detail;
@@ -373,8 +499,13 @@ export async function fetchCanvasAssignmentDetail(
       bodyText:
         sampleExtra?.text ??
         "No description was returned for this assignment. Open it in Canvas for full instructions.",
-      linkUrl: fromList.htmlUrl !== "#" ? fromList.htmlUrl : undefined,
-      linkLabel: "Open in Canvas",
+      linkUrl: assignmentDeepLink(
+        canvasBase(),
+        fromList.courseId,
+        id,
+        fromList.htmlUrl,
+      ),
+      linkLabel: "Open assignment in Canvas",
     };
   }
 

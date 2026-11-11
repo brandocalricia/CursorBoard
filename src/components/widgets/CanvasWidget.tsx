@@ -1,38 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { CalendarClock, ChevronRight } from "lucide-react";
 import { format, formatDistanceToNow, isValid, parseISO } from "date-fns";
 import { WidgetShell } from "@/components/dashboard/WidgetShell";
 import { DetailSheet } from "@/components/dashboard/DetailSheet";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { CanvasTokenBanner } from "@/components/dashboard/CanvasTokenBanner";
+import { useLiveQuery } from "@/hooks/useLiveQuery";
 import type { CanvasPayload, DetailItem } from "@/lib/types";
 
-export function CanvasWidget() {
-  const [data, setData] = useState<CanvasPayload | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+export function CanvasWidget({
+  onAuthStatus,
+}: {
+  onAuthStatus?: (payload: CanvasPayload) => void;
+} = {}) {
   const [detail, setDetail] = useState<DetailItem | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/canvas", { cache: "no-store" });
-        if (!res.ok) throw new Error("Couldn’t load Canvas");
-        const json = (await res.json()) as CanvasPayload;
-        if (!cancelled) setData(json);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Error");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const fetcher = useCallback(async () => {
+    const res = await fetch("/api/canvas", { cache: "no-store" });
+    if (!res.ok) throw new Error("Couldn’t load Canvas");
+    const json = (await res.json()) as CanvasPayload;
+    onAuthStatus?.(json);
+    return json;
+  }, [onAuthStatus]);
+
+  const { data, error, loading, refresh, updatedAt } = useLiveQuery({
+    fetcher,
+    intervalMs: 45_000,
+  });
 
   async function openDetail(id: string, fallback: DetailItem) {
     setDetail(fallback);
@@ -52,15 +49,25 @@ export function CanvasWidget() {
     }
   }
 
+  const authBad =
+    data?.authStatus === "token_expired" ||
+    data?.authStatus === "unauthorized" ||
+    data?.authStatus === "token_missing";
+
   return (
     <>
       <WidgetShell
         title="Canvas"
-        description="Upcoming work — click a row for instructions"
-        loading={loading}
+        description={
+          updatedAt
+            ? `Upcoming · refreshed ${format(updatedAt, "h:mm:ss a")}`
+            : "Upcoming work — click a row for instructions"
+        }
+        loading={loading && !data}
         error={error}
+        onRetry={() => void refresh()}
         sample={data?.sample}
-        empty={!loading && !error && !(data?.assignments.length)}
+        empty={!loading && !error && !authBad && !(data?.assignments.length)}
         emptyNode={
           <EmptyState
             illustration="empty"
@@ -69,6 +76,14 @@ export function CanvasWidget() {
           />
         }
       >
+        {authBad ? (
+          <CanvasTokenBanner
+            status={data?.authStatus}
+            message={data?.authMessage}
+            canvasBaseUrl={data?.canvasBaseUrl}
+            className="mb-3"
+          />
+        ) : null}
         <ul className="space-y-2">
           {(data?.assignments ?? []).map((a) => {
             const due = a.dueAt ? parseISO(a.dueAt) : null;
@@ -81,12 +96,12 @@ export function CanvasWidget() {
               due &&
               isValid(due) &&
               !overdue &&
-              due.getTime() - Date.now() < 36 * 3600_000;
+              due.getTime() - Date.now() < 2 * 86400_000;
             return (
               <li key={a.id}>
                 <button
                   type="button"
-                  className="row-item group"
+                  className="row-item"
                   onClick={() =>
                     void openDetail(a.id, {
                       id: a.id,
@@ -96,41 +111,22 @@ export function CanvasWidget() {
                       meta: [
                         dueLabel,
                         a.points != null ? `${a.points} pts` : "",
-                        overdue ? "Overdue" : dueSoon ? "Due soon" : "",
                       ].filter(Boolean),
-                      bodyHtml: a.descriptionHtml,
-                      bodyText:
-                        a.descriptionText ||
-                        "Loading full instructions…",
-                      linkUrl:
-                        a.htmlUrl && a.htmlUrl !== "#"
-                          ? a.htmlUrl
-                          : "https://canvas.du.edu",
-                      linkLabel: "Open in Canvas",
-                      links: [
-                        {
-                          url:
-                            a.htmlUrl && a.htmlUrl !== "#"
-                              ? a.htmlUrl
-                              : "https://canvas.du.edu",
-                          label: "Open assignment in Canvas",
-                        },
-                        {
-                          url: "https://canvas.du.edu",
-                          label: "Canvas home",
-                        },
-                      ],
+                      bodyText: a.descriptionText ?? "Loading instructions…",
+                      linkUrl: a.htmlUrl,
+                      linkLabel: "Open assignment in Canvas",
                     })
                   }
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-[15px] font-medium leading-snug text-foreground">
-                        {a.name}
+                      <p className="truncate text-sm font-semibold">{a.name}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {a.course}
+                        {a.points != null ? ` · ${a.points} pts` : ""}
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">{a.course}</p>
                       <p
-                        className={`mt-2 flex items-center gap-1.5 text-[12px] ${
+                        className={`mt-1 flex items-center gap-1 text-[11px] ${
                           overdue
                             ? "text-[var(--danger)]"
                             : dueSoon
@@ -138,18 +134,11 @@ export function CanvasWidget() {
                               : "text-muted-foreground"
                         }`}
                       >
-                        <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+                        <CalendarClock className="h-3 w-3" />
                         {dueLabel}
                       </p>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
-                      {a.points != null ? (
-                        <span className="rounded-lg bg-[color-mix(in_oklab,var(--accent)_16%,transparent)] px-2 py-1 text-[11px] font-semibold text-[var(--accent)]">
-                          {a.points} pts
-                        </span>
-                      ) : null}
-                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-50 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
-                    </div>
+                    <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
                   </div>
                 </button>
               </li>
@@ -159,11 +148,8 @@ export function CanvasWidget() {
       </WidgetShell>
       <DetailSheet
         item={detail}
+        onClose={() => setDetail(null)}
         loading={detailLoading}
-        onClose={() => {
-          setDetail(null);
-          setDetailLoading(false);
-        }}
       />
     </>
   );

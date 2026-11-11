@@ -27,7 +27,13 @@ export function DetailSheet({ item, onClose, loading }: Props) {
   );
 
   useEffect(() => {
-    if (open) closeBtnRef.current?.focus();
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeBtnRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [open]);
 
   return (

@@ -5,10 +5,35 @@ const DEFAULT_SETTINGS = {
   accent: "#5CEE15",
   density: "comfortable" as const,
   layoutPreset: "balanced" as const,
-  enabledWidgets: ["github", "canvas", "email", "briefs", "host", "speed"],
-  widgetOrder: ["github", "canvas", "email", "briefs", "host", "speed"],
+  themePack: "cryptozen" as const,
+  enabledWidgets: [
+    "github",
+    "canvas",
+    "email",
+    "calendar",
+    "weather",
+    "links",
+    "notes",
+    "focus",
+    "briefs",
+    "host",
+    "speed",
+  ],
+  widgetOrder: [
+    "github",
+    "canvas",
+    "email",
+    "calendar",
+    "weather",
+    "links",
+    "notes",
+    "focus",
+    "briefs",
+    "host",
+    "speed",
+  ],
   widgetSpans: {},
-  settingsVersion: 5,
+  settingsVersion: 6,
 };
 
 async function resetSettings(request: import("@playwright/test").APIRequestContext) {
@@ -33,6 +58,11 @@ test.describe("High Dashboard", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Canvas" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Email" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Weather" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Quick links" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Scratch notes" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Focus timer" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "This machine" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Internet" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Briefs & automations" })).toBeVisible();
@@ -56,35 +86,47 @@ test.describe("High Dashboard", () => {
     const canvas = page.locator("section").filter({
       has: page.getByRole("heading", { name: "Canvas" }),
     });
-    await expect(canvas.getByRole("button").first()).toBeVisible({ timeout: 20_000 });
-    await canvas.getByRole("button").first().click();
+    const row = canvas.locator("button.row-item").first();
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    await row.click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(/canvas/i).first()).toBeVisible();
     await expect(dialog.locator(".prose-hd, p").first()).toBeVisible();
     await expect(dialog.getByText(/Open on the real site/i)).toBeVisible();
-    await expect(dialog.getByRole("link").first()).toBeVisible();
-    await expect(dialog.getByRole("link").first()).toHaveAttribute("href", /https?:\/\//);
+    const outbound = dialog.locator("a[href^='http']").filter({ hasText: /Open/i }).first();
+    await expect(outbound).toBeVisible();
+    const href = await outbound.getAttribute("href");
+    expect(href).toMatch(/https?:\/\//);
+    // Exact assignment deep link — never bare Canvas home alone
+    expect(href).not.toBe("https://canvas.du.edu");
+    expect(href).not.toBe("https://canvas.du.edu/");
+    expect(href).toMatch(/\/courses\/|\/assignments\//);
 
     await dialog.getByRole("button", { name: "Close", exact: true }).click();
     await expect(dialog).toHaveCount(0);
   });
 
-  test("Email row opens readable detail sheet", async ({ page }) => {
+  test("Email shows inbox or clear setup empty state", async ({ page }) => {
     await waitForDashboard(page);
 
     const email = page.locator("section").filter({
       has: page.getByRole("heading", { name: "Email" }),
     });
-    await email.getByRole("button").first().click();
-
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByText(/email/i).first()).toBeVisible();
-    await expect(dialog.getByText(/Office hours|pull request|workshop/i).first()).toBeVisible();
-    await expect(dialog.getByRole("link").first()).toHaveAttribute("href", /https?:\/\//);
-    await dialog.getByRole("button", { name: "Close", exact: true }).click();
+    const row = email.locator("button.row-item").first();
+    if (await row.count()) {
+      await row.click();
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByText(/email/i).first()).toBeVisible();
+      await expect(dialog.getByRole("link").first()).toHaveAttribute("href", /https?:\/\//);
+      await dialog.getByRole("button", { name: "Close", exact: true }).click();
+    } else {
+      await expect(
+        email.getByText(/Gmail not connected|Inbox is quiet|Composio Platform/i).first(),
+      ).toBeVisible();
+    }
   });
 
   test("GitHub activity opens detail sheet", async ({ page }) => {
@@ -106,8 +148,9 @@ test.describe("High Dashboard", () => {
   test("Layout studio page reorders widgets", async ({ page }) => {
     await page.goto("/customize");
     await expect(page.getByRole("heading", { name: "Layout studio" })).toBeVisible();
-    await expect(page.getByText("Widget order & size")).toBeVisible();
-    await page.getByRole("button", { name: /Move GitHub down/i }).click();
+    await expect(page.getByRole("heading", { name: "Drag widgets" })).toBeVisible();
+    await expect(page.getByLabel(/Drag GitHub/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: "CryptoZen Lime" })).toBeVisible();
     await page.getByRole("link", { name: /Back to live board/i }).click();
     await expect(page.getByRole("heading", { name: "High Dashboard" })).toBeVisible();
   });

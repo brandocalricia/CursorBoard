@@ -4,11 +4,34 @@ const SOURCE_HOME: Record<DetailItem["source"], DetailLink> = {
   github: { url: "https://github.com", label: "Open GitHub" },
   canvas: { url: "https://canvas.du.edu", label: "Open Canvas" },
   email: { url: "https://mail.google.com", label: "Open Gmail" },
-  system: { url: "https://github.com/brandocalricia/CursorBoard", label: "Open project repo" },
+  calendar: { url: "https://calendar.google.com", label: "Open Calendar" },
+  system: {
+    url: "https://github.com/brandocalricia/CursorBoard",
+    label: "Open project repo",
+  },
 };
 
-/** Ensure every detail has at least one real outbound link. */
-export function withGuaranteedLinks(item: DetailItem): DetailItem & { links: DetailLink[] } {
+/** True when a URL looks like a site home, not a specific item. */
+export function isGenericHomeUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    const path = u.pathname.replace(/\/+$/, "") || "/";
+    if (path !== "/" && path !== "") return false;
+    // bare hosts / roots only
+    return true;
+  } catch {
+    return url === "#" || !url;
+  }
+}
+
+/**
+ * Ensure every detail has at least one outbound link.
+ * Prefer exact item URLs. Never promote a site home above an item link.
+ * Only add a home fallback when no specific item URL exists.
+ */
+export function withGuaranteedLinks(
+  item: DetailItem,
+): DetailItem & { links: DetailLink[] } {
   const links: DetailLink[] = [];
   const seen = new Set<string>();
 
@@ -19,27 +42,31 @@ export function withGuaranteedLinks(item: DetailItem): DetailItem & { links: Det
   };
 
   if (item.linkUrl) {
-    push({ url: item.linkUrl, label: item.linkLabel ?? "Open original" });
+    push({
+      url: item.linkUrl,
+      label: item.linkLabel ?? "Open original",
+    });
   }
   for (const l of item.links ?? []) push(l);
 
-  // Fallbacks so the sheet never ends without a destination
-  if (item.source === "github") {
-    push({ url: "https://github.com", label: "GitHub home" });
-  } else if (item.source === "canvas") {
-    push({ url: "https://canvas.du.edu", label: "Canvas home" });
-  } else if (item.source === "email") {
-    push({ url: "https://mail.google.com", label: "Open Gmail" });
-  } else {
-    push(SOURCE_HOME.system);
+  const hasSpecific = links.some((l) => !isGenericHomeUrl(l.url));
+  if (!hasSpecific) {
+    // Last resort only — sheet should never be dead, but prefer item URLs upstream
+    push(SOURCE_HOME[item.source] ?? SOURCE_HOME.system);
   }
 
-  if (!links.length) push(SOURCE_HOME[item.source]);
+  const primary =
+    links.find((l) => !isGenericHomeUrl(l.url)) ?? links[0] ?? undefined;
 
   return {
     ...item,
-    linkUrl: item.linkUrl ?? links[0]?.url,
-    linkLabel: item.linkLabel ?? links[0]?.label,
+    linkUrl: item.linkUrl && !isGenericHomeUrl(item.linkUrl) ? item.linkUrl : primary?.url,
+    linkLabel:
+      item.linkLabel ??
+      (item.linkUrl && !isGenericHomeUrl(item.linkUrl)
+        ? item.linkLabel
+        : primary?.label) ??
+      primary?.label,
     links,
   };
 }

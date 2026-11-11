@@ -84,14 +84,30 @@ export async function fetchGitHub(): Promise<GitHubPayload> {
       const repo = (e.repo as { name?: string } | undefined)?.name ?? "unknown";
       const type = String(e.type ?? "Event");
       const payload = (e.payload ?? {}) as Record<string, unknown>;
-      const pr = payload.pull_request as { html_url?: string } | undefined;
-      const commits = payload.commits as Array<{ url?: string }> | undefined;
+      const pr = payload.pull_request as {
+        html_url?: string;
+        number?: number;
+      } | undefined;
+      const issue = payload.issue as { html_url?: string; number?: number } | undefined;
+      const comment = payload.comment as { html_url?: string } | undefined;
+      const release = payload.release as { html_url?: string } | undefined;
+      const commits = payload.commits as Array<{ url?: string; sha?: string }> | undefined;
+      const sha = typeof payload.head === "string" ? payload.head : undefined;
       const url =
         pr?.html_url ||
-        (typeof payload.ref === "string" && repo !== "unknown"
-          ? `https://github.com/${repo}/commits/${String(payload.ref).replace(/^refs\/heads\//, "")}`
+        issue?.html_url ||
+        comment?.html_url ||
+        release?.html_url ||
+        (commits?.[0]?.sha && repo !== "unknown"
+          ? `https://github.com/${repo}/commit/${commits[0].sha}`
           : undefined) ||
-        commits?.[0]?.url?.replace("api.github.com/repos", "github.com").replace("/commits/", "/commit/") ||
+        commits?.[0]?.url
+          ?.replace("api.github.com/repos", "github.com")
+          .replace("/commits/", "/commit/") ||
+        (sha && repo !== "unknown" ? `https://github.com/${repo}/commit/${sha}` : undefined) ||
+        (typeof payload.ref === "string" && repo !== "unknown"
+          ? `https://github.com/${repo}/tree/${String(payload.ref).replace(/^refs\/heads\//, "")}`
+          : undefined) ||
         (repo !== "unknown" ? `https://github.com/${repo}` : "https://github.com");
       return {
         id: String(e.id),

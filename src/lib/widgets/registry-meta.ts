@@ -2,6 +2,11 @@ export const WIDGET_IDS = [
   "github",
   "canvas",
   "email",
+  "calendar",
+  "weather",
+  "links",
+  "notes",
+  "focus",
   "briefs",
   "host",
   "speed",
@@ -10,13 +15,13 @@ export const WIDGET_IDS = [
 export type WidgetId = (typeof WIDGET_IDS)[number];
 
 /** Bump when shipping widgets that existing installs should auto-enable once. */
-export const SETTINGS_VERSION = 5;
+export const SETTINGS_VERSION = 6;
 
 export type WidgetMeta = {
   id: WidgetId;
   title: string;
   description: string;
-  category: "code" | "school" | "comms" | "system" | "network";
+  category: "code" | "school" | "comms" | "system" | "network" | "life";
   colSpan: number;
   rowSpan: number;
   enabledByDefault: boolean;
@@ -47,6 +52,51 @@ export const WIDGET_META: WidgetMeta[] = [
     description: "Unread and priority messages",
     category: "comms",
     colSpan: 2,
+    rowSpan: 2,
+    enabledByDefault: true,
+  },
+  {
+    id: "calendar",
+    title: "Calendar",
+    description: "Upcoming Google Calendar events",
+    category: "life",
+    colSpan: 2,
+    rowSpan: 2,
+    enabledByDefault: true,
+  },
+  {
+    id: "weather",
+    title: "Weather",
+    description: "Local conditions via Open-Meteo",
+    category: "life",
+    colSpan: 1,
+    rowSpan: 2,
+    enabledByDefault: true,
+  },
+  {
+    id: "links",
+    title: "Quick links",
+    description: "Bookmarks that open the exact URL you save",
+    category: "life",
+    colSpan: 1,
+    rowSpan: 2,
+    enabledByDefault: true,
+  },
+  {
+    id: "notes",
+    title: "Scratch notes",
+    description: "Local notes stored on this machine",
+    category: "life",
+    colSpan: 2,
+    rowSpan: 2,
+    enabledByDefault: true,
+  },
+  {
+    id: "focus",
+    title: "Focus timer",
+    description: "Study / pomodoro countdown",
+    category: "life",
+    colSpan: 1,
     rowSpan: 2,
     enabledByDefault: true,
   },

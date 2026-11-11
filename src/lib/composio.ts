@@ -1,7 +1,7 @@
 /**
  * Minimal Composio Tools API client (v3.1).
- * Uses the user's Composio-connected Canvas account (OAuth-backed) so we
- * are not limited to DU's 30-day manual access tokens.
+ * Platform project keys (`ak_…`) work with `x-api-key` + tools/execute.
+ * Connect consumer keys (`ck_…`) do not — treat them as unset.
  */
 
 const COMPOSIO_BASE =
@@ -13,19 +13,30 @@ export type ComposioExecuteResult<T = unknown> = {
   error?: string;
 };
 
+/** Returns a usable Platform API key, or null for ck_/empty/invalid. */
+export function getComposioApiKey(): string | null {
+  const apiKey = process.env.COMPOSIO_API_KEY?.trim();
+  if (!apiKey) return null;
+  // Connect MCP consumer keys cannot call tools/execute
+  if (apiKey.startsWith("ck_")) return null;
+  return apiKey;
+}
+
 export async function composioExecute<T = unknown>(
   toolSlug: string,
   args: Record<string, unknown> = {},
   connectedAccountId?: string,
 ): Promise<ComposioExecuteResult<T>> {
-  const apiKey = process.env.COMPOSIO_API_KEY?.trim();
+  const apiKey = getComposioApiKey();
   if (!apiKey) {
-    return { successful: false, error: "COMPOSIO_API_KEY unset" };
+    return { successful: false, error: "COMPOSIO_API_KEY unset or unsupported (ck_)" };
   }
 
   const account =
     connectedAccountId?.trim() ||
     process.env.COMPOSIO_CANVAS_ACCOUNT_ID?.trim() ||
+    process.env.COMPOSIO_GMAIL_ACCOUNT_ID?.trim() ||
+    process.env.COMPOSIO_CALENDAR_ACCOUNT_ID?.trim() ||
     undefined;
 
   const res = await fetch(
@@ -57,5 +68,5 @@ export async function composioExecute<T = unknown>(
 }
 
 export function isComposioConfigured(): boolean {
-  return Boolean(process.env.COMPOSIO_API_KEY?.trim());
+  return Boolean(getComposioApiKey());
 }

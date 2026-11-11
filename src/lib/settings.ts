@@ -13,9 +13,11 @@ export const DEFAULT_SETTINGS: UserSettings = {
   accent: "#5CEE15",
   density: "comfortable",
   layoutPreset: "balanced",
+  themePack: "cryptozen",
   enabledWidgets: [...WIDGET_IDS],
   widgetOrder: [...WIDGET_IDS],
   widgetSpans: {},
+  weatherCoords: null,
   settingsVersion: SETTINGS_VERSION,
 };
 
