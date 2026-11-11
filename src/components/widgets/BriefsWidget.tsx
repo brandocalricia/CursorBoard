@@ -110,9 +110,9 @@ export function BriefsWidget() {
           </div>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
           {autos?.pulses?.length ? (
-            <ul className="grid gap-2 sm:grid-cols-2">
+            <ul className="grid gap-1.5 sm:grid-cols-2">
               {autos.pulses.map((p) => {
                 const when = p.lastAt ? parseISO(p.lastAt) : null;
                 const ago =
@@ -122,11 +122,12 @@ export function BriefsWidget() {
                 return (
                   <li
                     key={p.id}
-                    className="rounded-2xl border border-border/70 bg-muted/40 px-3 py-2.5"
+                    className="rounded-xl bg-muted/40 px-2.5 py-1.5"
                   >
-                    <p className="text-sm font-medium text-foreground">{p.label}</p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">{p.schedule}</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">Last · {ago}</p>
+                    <p className="text-xs font-medium leading-snug text-foreground">{p.label}</p>
+                    <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
+                      {p.schedule} · {ago}
+                    </p>
                   </li>
                 );
               })}
@@ -134,18 +135,17 @@ export function BriefsWidget() {
           ) : null}
 
           {!autos?.composioConfigured ? (
-            <p className="rounded-xl border border-[color-mix(in_oklab,var(--warning)_35%,transparent)] bg-[color-mix(in_oklab,var(--warning)_10%,transparent)] px-3 py-2 text-xs text-foreground">
-              Canvas is on sample data until you set <code>COMPOSIO_API_KEY</code> in{" "}
-              <code>.env.local</code> — see docs/CANVAS_TOKENS.md.
+            <p className="rounded-lg bg-[color-mix(in_oklab,var(--warning)_10%,transparent)] px-2.5 py-1.5 text-[11px] leading-snug text-muted-foreground">
+              Canvas sample until <code className="text-foreground">COMPOSIO_API_KEY</code> — docs/CANVAS_TOKENS.md
             </p>
           ) : null}
 
           <div>
-            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               <Newspaper className="h-3.5 w-3.5" /> Recent briefs
             </div>
-            <ul className="space-y-2">
-              {digests.slice(0, 8).map((d) => {
+            <ul className="space-y-1">
+              {digests.slice(0, 6).map((d) => {
                 const when = parseISO(d.created_at);
                 const ago = isValid(when)
                   ? formatDistanceToNow(when, { addSuffix: true })
@@ -154,7 +154,7 @@ export function BriefsWidget() {
                   <li key={d.id}>
                     <button
                       type="button"
-                      className="row-item"
+                      className="row-item py-2"
                       onClick={() =>
                         setDetail({
                           id: String(d.id),
@@ -167,11 +167,15 @@ export function BriefsWidget() {
                         })
                       }
                     >
-                      <p className="text-sm font-medium text-foreground">{d.title}</p>
-                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                        {d.body_md.replace(/[#*_`]/g, "").slice(0, 140)}
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-sm font-medium leading-snug text-foreground">{d.title}</p>
+                        {ago ? (
+                          <span className="shrink-0 text-[10px] text-muted-foreground">{ago}</span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 line-clamp-1 text-xs leading-snug text-muted-foreground">
+                        {d.body_md.replace(/[#*_`]/g, "").slice(0, 100)}
                       </p>
-                      <p className="mt-1 text-[11px] text-muted-foreground">{ago}</p>
                     </button>
                   </li>
                 );

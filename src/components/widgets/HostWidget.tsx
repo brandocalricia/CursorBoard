@@ -210,7 +210,10 @@ export function HostWidget() {
                 <Thermometer className="h-3.5 w-3.5" /> Thermal
               </div>
               <p className="stat-value text-sm">
-                CPU {data.thermal.cpuTempC != null ? `${data.thermal.cpuTempC.toFixed(0)}°C` : "—"}
+                CPU{" "}
+                {data.thermal.cpuTempC != null
+                  ? `${data.thermal.cpuTempC.toFixed(0)}°C`
+                  : "n/a on this OS"}
               </p>
             </div>
             <div className="rounded-xl bg-muted/35 px-3 py-2">

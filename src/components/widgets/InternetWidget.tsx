@@ -41,6 +41,26 @@ const PHASE_LABEL: Record<SpeedPhase, string> = {
 
 type SpeedHistory = Array<{ t: string; down: number; up: number; ping: number }>;
 
+/** Hide flat zeros — idle links looked broken next to speed rings. */
+function LiveMbps({ mbps, sampled }: { mbps: number; sampled: boolean }) {
+  const active = sampled && mbps >= 0.05;
+  return (
+    <>
+      <p className="stat-value text-base text-foreground">
+        {active ? `${mbps.toFixed(1)} Mbps` : "—"}
+      </p>
+      {!active ? (
+        <p className="text-[11px] text-muted-foreground">waiting for traffic</p>
+      ) : null}
+    </>
+  );
+}
+
+function ifaceRate(mbps: number | undefined): string {
+  if (mbps == null || mbps < 0.05) return "—";
+  return mbps.toFixed(1);
+}
+
 function Ring({
   value,
   max,
@@ -217,6 +237,7 @@ export function InternetWidget() {
     [hostNet],
   );
 
+  const ratesSampled = topIfaces.some((n) => n.rxMbps != null || n.txMbps != null);
   const totalRx = topIfaces.reduce((s, n) => s + (n.rxMbps ?? 0), 0);
   const totalTx = topIfaces.reduce((s, n) => s + (n.txMbps ?? 0), 0);
 
@@ -268,13 +289,13 @@ export function InternetWidget() {
             <div className="mb-1 flex items-center gap-1 text-[11px] uppercase tracking-wider text-muted-foreground">
               <ArrowDown className="h-3.5 w-3.5 text-[var(--accent)]" /> Live ↓
             </div>
-            <p className="stat-value text-base text-foreground">{totalRx.toFixed(1)} Mbps</p>
+            <LiveMbps mbps={totalRx} sampled={ratesSampled} />
           </div>
           <div className="rounded-2xl bg-muted/55 px-3 py-2.5">
             <div className="mb-1 flex items-center gap-1 text-[11px] uppercase tracking-wider text-muted-foreground">
               <ArrowUp className="h-3.5 w-3.5 text-[var(--accent-2)]" /> Live ↑
             </div>
-            <p className="stat-value text-base text-foreground">{totalTx.toFixed(1)} Mbps</p>
+            <LiveMbps mbps={totalTx} sampled={ratesSampled} />
           </div>
         </div>
 
@@ -315,10 +336,10 @@ export function InternetWidget() {
                   </div>
                   <div className="text-right">
                     <p className="stat-value text-xs text-[var(--accent)]">
-                      ↓ {(n.rxMbps ?? 0).toFixed(1)}
+                      ↓ {ifaceRate(n.rxMbps)}
                     </p>
                     <p className="stat-value text-xs text-[var(--accent-2)]">
-                      ↑ {(n.txMbps ?? 0).toFixed(1)}
+                      ↑ {ifaceRate(n.txMbps)}
                     </p>
                   </div>
                 </li>
@@ -384,7 +405,8 @@ export function InternetWidget() {
           </div>
         )}
 
-        {history.length > 1 ? (
+        {/* Require ≥2 runs before chart chrome — avoid empty bar shells */}
+        {history.length >= 2 ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl bg-muted/40 px-3 py-2.5">
               <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -399,6 +421,10 @@ export function InternetWidget() {
               <SparkBars data={upHist} height={72} />
             </div>
           </div>
+        ) : result && (phase === "done" || phase === "idle") ? (
+          <p className="text-center text-xs text-muted-foreground" aria-live="polite">
+            Speed history builds after 2+ tests — keep collecting…
+          </p>
         ) : null}
       </div>
     </WidgetShell>
