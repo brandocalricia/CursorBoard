@@ -4,12 +4,12 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lib.sh
 source "$ROOT/agents/lib.sh"
 load_hd_env "$ROOT"
+hd_set_auth
 
 PORT="${HIGH_DASHBOARD_PORT:-3000}"
 BASE="http://127.0.0.1:${PORT}"
-mapfile -t AUTH < <(hd_auth_args)
 
-BODY="## GitHub digest"$'\n\n'"Generated $(date -Iseconds)"$'\n'
+BODY="## GitHub digest"$'\n\n'"Generated $(hd_now)"$'\n'
 
 if command -v gh >/dev/null 2>&1; then
   EVENTS="$(gh api user/events?per_page=8 --jq '.[] | "- \(.type | sub("Event$";"")) · \(.repo.name) (\(.created_at))"' 2>/dev/null || true)"

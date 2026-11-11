@@ -4,10 +4,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lib.sh
 source "$ROOT/agents/lib.sh"
 load_hd_env "$ROOT"
+hd_set_auth
 
 PORT="${HIGH_DASHBOARD_PORT:-3000}"
 BASE="http://127.0.0.1:${PORT}"
-mapfile -t AUTH < <(hd_auth_args)
 
 STATUS="remind"
 DETAIL="Verify Composio Canvas connection is ACTIVE. Manual DU tokens expire in ≤30 days."
@@ -34,7 +34,7 @@ else
   DETAIL="COMPOSIO_API_KEY unset. High Dashboard will show sample Canvas until you add it to .env.local."
 fi
 
-MD="## Canvas auth check"$'\n\n'"**Status:** ${STATUS}"$'\n\n'"${DETAIL}"$'\n\n'"Checked $(date -Iseconds)"$'\n'
+MD="## Canvas auth check"$'\n\n'"**Status:** ${STATUS}"$'\n\n'"${DETAIL}"$'\n\n'"Checked $(hd_now)"$'\n'
 
 payload=$(jq -n --arg body "$MD" --arg status "$STATUS" \
   '{source:"canvas",kind:"auth_check",title:("Canvas auth · " + $status),body_md:$body,payload:{status:$status}}')
