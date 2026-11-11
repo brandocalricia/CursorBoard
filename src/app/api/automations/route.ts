@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sqlAll, sqlGet } from "@/lib/db";
 import { isComposioConfigured } from "@/lib/composio";
+import { guardAutomationPost } from "@/lib/request-guard";
 import { spawn } from "node:child_process";
 import path from "node:path";
 
@@ -118,13 +119,30 @@ const RUNNABLE: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
-  let body: { id?: string } = {};
+  let parsed: unknown;
+  let invalidJson = false;
   try {
-    body = await request.json();
+    parsed = await request.json();
   } catch {
-    /* empty */
+    parsed = undefined;
+    invalidJson = true;
   }
-  const id = body.id ?? "all";
+
+  const decision = guardAutomationPost(
+    request,
+    parsed,
+    Object.keys(RUNNABLE),
+    process.env.INGEST_SECRET,
+    invalidJson,
+  );
+  if (!decision.ok) {
+    return NextResponse.json(
+      { error: decision.error },
+      { status: decision.status, headers: { "cache-control": "private, no-store" } },
+    );
+  }
+
+  const id = decision.id;
   const script = RUNNABLE[id];
   if (!script) {
     return NextResponse.json({ error: "unknown_automation" }, { status: 400 });
