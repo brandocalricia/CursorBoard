@@ -155,7 +155,37 @@ export function BriefsWidget() {
                     <button
                       type="button"
                       className="row-item py-2"
-                      onClick={() =>
+                      onClick={() => {
+                        const kind = d.kind.toLowerCase();
+                        const links =
+                          kind.includes("canvas")
+                            ? [
+                                {
+                                  url: "https://canvas.du.edu",
+                                  label: "Open Canvas",
+                                },
+                                {
+                                  url: "https://app.composio.dev",
+                                  label: "Open Composio connections",
+                                },
+                              ]
+                            : kind.includes("github")
+                              ? [
+                                  {
+                                    url: "https://github.com",
+                                    label: "Open GitHub",
+                                  },
+                                  {
+                                    url: "https://github.com/brandocalricia/CursorBoard",
+                                    label: "Open this repo",
+                                  },
+                                ]
+                              : [
+                                  {
+                                    url: "https://github.com/brandocalricia/CursorBoard",
+                                    label: "Open project repo",
+                                  },
+                                ];
                         setDetail({
                           id: String(d.id),
                           source: "system",
@@ -163,9 +193,11 @@ export function BriefsWidget() {
                           subtitle: d.kind.replace(/_/g, " "),
                           meta: [ago].filter(Boolean),
                           bodyText: d.body_md,
-                          linkLabel: undefined,
-                        })
-                      }
+                          linkUrl: links[0]!.url,
+                          linkLabel: links[0]!.label,
+                          links,
+                        });
+                      }}
                     >
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="text-sm font-medium leading-snug text-foreground">{d.title}</p>

@@ -31,11 +31,11 @@ import type { HostMetrics } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const PHASE_LABEL: Record<SpeedPhase, string> = {
-  idle: "Live link · start a full speed test anytime",
-  latency: "Checking latency…",
-  download: "Measuring download…",
-  upload: "Measuring upload…",
-  done: "Speed test complete",
+  idle: "Live link · full test runs ~22s (multi-stream, like Cloudflare/Ookla)",
+  latency: "Latency · 12 samples after warm-up…",
+  download: "Download · sustaining ~12s across 4 parallel streams…",
+  upload: "Upload · sustaining ~10s across 3 parallel streams…",
+  done: "Speed test complete (sustained reading)",
   error: "Speed test failed",
 };
 
@@ -199,6 +199,8 @@ export function InternetWidget() {
         jitterMs: partial.jitterMs ?? prev?.jitterMs ?? null,
         downloadMbps: partial.downloadMbps ?? prev?.downloadMbps ?? null,
         uploadMbps: partial.uploadMbps ?? prev?.uploadMbps ?? null,
+        downloadMs: partial.downloadMs ?? prev?.downloadMs,
+        uploadMs: partial.uploadMs ?? prev?.uploadMs,
         internetPath: partial.internetPath ?? prev?.internetPath ?? false,
         probedAt: partial.probedAt ?? prev?.probedAt ?? new Date().toISOString(),
         error: partial.error,
@@ -353,7 +355,7 @@ export function InternetWidget() {
           <EmptyState
             illustration="speed"
             title="Run a full speed test"
-            body="Measures latency, download, and upload against a public edge — separate from live interface rates above."
+            body="~22s sustained test: 12 latency samples, ~12s download (4 streams), ~10s upload (3 streams) — like Cloudflare/Ookla, not a flash probe."
             action={
               <Button size="sm" variant="accent" onClick={() => void run()}>
                 <Play className="h-3.5 w-3.5" weight="fill" /> Start speed test
@@ -402,6 +404,18 @@ export function InternetWidget() {
                 </p>
               </div>
             </div>
+            {result?.downloadMs || result?.uploadMs ? (
+              <p className="text-center text-[11px] text-muted-foreground">
+                Sustained{" "}
+                {result.downloadMs != null
+                  ? `${(result.downloadMs / 1000).toFixed(1)}s down`
+                  : null}
+                {result.downloadMs != null && result.uploadMs != null ? " · " : null}
+                {result.uploadMs != null
+                  ? `${(result.uploadMs / 1000).toFixed(1)}s up`
+                  : null}
+              </p>
+            ) : null}
           </div>
         )}
 

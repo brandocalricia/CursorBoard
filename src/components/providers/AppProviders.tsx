@@ -9,14 +9,21 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { UserSettings } from "@/lib/types";
-import { WIDGET_IDS, normalizeEnabledWidgets } from "@/lib/widgets/registry-meta";
+import type { UserSettings, WidgetSpan } from "@/lib/types";
+import {
+  WIDGET_IDS,
+  normalizeEnabledWidgets,
+  normalizeWidgetOrder,
+  type WidgetId,
+} from "@/lib/widgets/registry-meta";
 
 type Ctx = {
   settings: UserSettings;
   loading: boolean;
   setSettings: (patch: Partial<UserSettings>) => Promise<void>;
   toggleWidget: (id: string) => Promise<void>;
+  moveWidget: (id: WidgetId, dir: -1 | 1) => Promise<void>;
+  setWidgetSpan: (id: WidgetId, span: WidgetSpan) => Promise<void>;
 };
 
 const SettingsContext = createContext<Ctx | null>(null);
@@ -27,7 +34,17 @@ const FALLBACK: UserSettings = {
   density: "comfortable",
   layoutPreset: "balanced",
   enabledWidgets: [...WIDGET_IDS],
+  widgetOrder: [...WIDGET_IDS],
+  widgetSpans: {},
 };
+
+function persist(next: UserSettings) {
+  void fetch("/api/settings", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(next),
+  });
+}
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [settings, setLocal] = useState<UserSettings>(FALLBACK);
@@ -44,6 +61,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
             setLocal({
               ...data,
               enabledWidgets: normalizeEnabledWidgets(data.enabledWidgets),
+              widgetOrder: normalizeWidgetOrder(data.widgetOrder ?? data.enabledWidgets),
+              widgetSpans: data.widgetSpans ?? {},
             });
           }
         }
@@ -76,11 +95,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   const setSettings = useCallback(async (patch: Partial<UserSettings>) => {
     setLocal((prev) => {
       const next = { ...prev, ...patch };
-      void fetch("/api/settings", {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(next),
-      });
+      persist(next);
       return next;
     });
   }, []);
@@ -91,18 +106,49 @@ export function AppProviders({ children }: { children: ReactNode }) {
         ? prev.enabledWidgets.filter((w) => w !== id)
         : [...prev.enabledWidgets, id];
       const next = { ...prev, enabledWidgets: enabled };
-      void fetch("/api/settings", {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(next),
-      });
+      persist(next);
+      return next;
+    });
+  }, []);
+
+  const moveWidget = useCallback(async (id: WidgetId, dir: -1 | 1) => {
+    setLocal((prev) => {
+      const order = normalizeWidgetOrder(prev.widgetOrder);
+      const idx = order.indexOf(id);
+      if (idx < 0) return prev;
+      const nextIdx = idx + dir;
+      if (nextIdx < 0 || nextIdx >= order.length) return prev;
+      const nextOrder = [...order];
+      const tmp = nextOrder[idx]!;
+      nextOrder[idx] = nextOrder[nextIdx]!;
+      nextOrder[nextIdx] = tmp;
+      const next = { ...prev, widgetOrder: nextOrder };
+      persist(next);
+      return next;
+    });
+  }, []);
+
+  const setWidgetSpan = useCallback(async (id: WidgetId, span: WidgetSpan) => {
+    setLocal((prev) => {
+      const next = {
+        ...prev,
+        widgetSpans: { ...(prev.widgetSpans ?? {}), [id]: span },
+      };
+      persist(next);
       return next;
     });
   }, []);
 
   const value = useMemo(
-    () => ({ settings, loading, setSettings, toggleWidget }),
-    [settings, loading, setSettings, toggleWidget],
+    () => ({
+      settings,
+      loading,
+      setSettings,
+      toggleWidget,
+      moveWidget,
+      setWidgetSpan,
+    }),
+    [settings, loading, setSettings, toggleWidget, moveWidget, setWidgetSpan],
   );
 
   return (

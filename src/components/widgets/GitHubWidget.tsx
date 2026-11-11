@@ -97,8 +97,18 @@ export function GitHubWidget() {
                           bodyText:
                             e.body ||
                             `${e.summary}\n\nRepository: ${e.repo}\nWhen: ${new Date(e.createdAt).toLocaleString()}`,
-                          linkUrl: e.url,
+                          linkUrl: e.url || `https://github.com/${e.repo}`,
                           linkLabel: "Open on GitHub",
+                          links: [
+                            {
+                              url: e.url || `https://github.com/${e.repo}`,
+                              label: "Open this activity",
+                            },
+                            {
+                              url: `https://github.com/${e.repo}`,
+                              label: "Open repository",
+                            },
+                          ],
                         })
                       }
                     >
@@ -139,8 +149,18 @@ export function GitHubWidget() {
                           ],
                           bodyText:
                             pr.body?.trim() || "No pull request description was provided.",
-                          linkUrl: pr.url,
+                          linkUrl: pr.url || `https://github.com/${pr.repo}`,
                           linkLabel: "Open pull request",
+                          links: [
+                            {
+                              url: pr.url || `https://github.com/${pr.repo}/pulls`,
+                              label: "Open pull request",
+                            },
+                            {
+                              url: `https://github.com/${pr.repo}`,
+                              label: "Open repository",
+                            },
+                          ],
                         })
                       }
                     >

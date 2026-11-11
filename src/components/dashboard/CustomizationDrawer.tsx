@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import Link from "next/link";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,16 @@ export function CustomizationDrawer({ open, onClose }: Props) {
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Customize</h2>
-                <p className="text-sm text-muted-foreground">Theme, density, widgets</p>
+                <p className="text-sm text-muted-foreground">
+                  Quick toggles —{" "}
+                  <Link
+                    href="/customize"
+                    className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline"
+                    onClick={onClose}
+                  >
+                    open full Layout studio
+                  </Link>
+                </p>
               </div>
               <Button size="icon" variant="ghost" onClick={onClose} aria-label="Close">
                 <X className="h-4 w-4" />

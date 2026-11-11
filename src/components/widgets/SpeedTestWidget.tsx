@@ -16,8 +16,8 @@ import { cn } from "@/lib/utils";
 const PHASE_LABEL: Record<SpeedPhase, string> = {
   idle: "Ready when you are",
   latency: "Checking latency…",
-  download: "Measuring download…",
-  upload: "Measuring upload…",
+  download: "Download · sustaining ~12s…",
+  upload: "Upload · sustaining ~10s…",
   done: "Test complete",
   error: "Something went wrong",
 };

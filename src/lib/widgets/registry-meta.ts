@@ -10,7 +10,7 @@ export const WIDGET_IDS = [
 export type WidgetId = (typeof WIDGET_IDS)[number];
 
 /** Bump when shipping widgets that existing installs should auto-enable once. */
-export const SETTINGS_VERSION = 4;
+export const SETTINGS_VERSION = 5;
 
 export type WidgetMeta = {
   id: WidgetId;
@@ -106,4 +106,28 @@ export function migrateEnabledWidgets(
     next = WIDGET_IDS.filter((id) => set.has(id));
   }
   return next;
+}
+
+/** Merge saved order with registry; drop unknowns; append missing. */
+export function normalizeWidgetOrder(ids: string[] | undefined | null): WidgetId[] {
+  const known = (ids ?? []).filter((id): id is WidgetId =>
+    (WIDGET_IDS as readonly string[]).includes(id),
+  );
+  const seen = new Set(known);
+  const rest = WIDGET_IDS.filter((id) => !seen.has(id));
+  return known.length ? [...known, ...rest] : [...WIDGET_IDS];
+}
+
+export function resolveWidgetSpan(
+  id: WidgetId,
+  spans: Partial<Record<string, number>> | undefined,
+  preset: "focus" | "balanced" | "dense",
+): number {
+  const override = spans?.[id];
+  if (override === 1 || override === 2 || override === 3) return override;
+  const meta = WIDGET_META.find((w) => w.id === id);
+  const base = meta?.colSpan ?? 2;
+  if (preset === "dense") return Math.min(base, 2);
+  if (preset === "focus" && id === "host") return 3;
+  return base;
 }

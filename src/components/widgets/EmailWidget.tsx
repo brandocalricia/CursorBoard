@@ -45,6 +45,7 @@ const SAMPLE: EmailPayload = {
       receivedAt: new Date(Date.now() - 26 * 3600_000).toISOString(),
       unread: false,
       priority: "low",
+      htmlUrl: "https://www.du.edu/career",
     },
   ],
 };
@@ -100,8 +101,15 @@ export function EmailWidget() {
                       ].filter(Boolean),
                       bodyText: m.bodyText ?? m.preview,
                       bodyHtml: m.bodyHtml,
-                      linkUrl: m.htmlUrl,
+                      linkUrl: m.htmlUrl ?? "https://mail.google.com",
                       linkLabel: "Open in mail",
+                      links: [
+                        {
+                          url: m.htmlUrl ?? "https://mail.google.com",
+                          label: "Open this message / inbox",
+                        },
+                        { url: "https://mail.google.com", label: "Open Gmail" },
+                      ],
                     })
                   }
                 >

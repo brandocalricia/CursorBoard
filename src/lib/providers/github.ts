@@ -83,12 +83,24 @@ export async function fetchGitHub(): Promise<GitHubPayload> {
     events: eventsJson.slice(0, 10).map((e) => {
       const repo = (e.repo as { name?: string } | undefined)?.name ?? "unknown";
       const type = String(e.type ?? "Event");
+      const payload = (e.payload ?? {}) as Record<string, unknown>;
+      const pr = payload.pull_request as { html_url?: string } | undefined;
+      const commits = payload.commits as Array<{ url?: string }> | undefined;
+      const url =
+        pr?.html_url ||
+        (typeof payload.ref === "string" && repo !== "unknown"
+          ? `https://github.com/${repo}/commits/${String(payload.ref).replace(/^refs\/heads\//, "")}`
+          : undefined) ||
+        commits?.[0]?.url?.replace("api.github.com/repos", "github.com").replace("/commits/", "/commit/") ||
+        (repo !== "unknown" ? `https://github.com/${repo}` : "https://github.com");
       return {
         id: String(e.id),
         type,
         repo,
         summary: `${type.replace(/Event$/, "")} · ${repo}`,
         createdAt: String(e.created_at ?? new Date().toISOString()),
+        url,
+        body: `${type.replace(/Event$/, "")} on ${repo}`,
       };
     }),
     pullRequests: (prsJson.items ?? []).map((pr) => ({
@@ -96,9 +108,10 @@ export async function fetchGitHub(): Promise<GitHubPayload> {
       title: String(pr.title ?? "Untitled"),
       repo: String(pr.repository_url ?? "")
         .replace("https://api.github.com/repos/", ""),
-      url: String(pr.html_url ?? "#"),
+      url: String(pr.html_url ?? "https://github.com"),
       updatedAt: String(pr.updated_at ?? new Date().toISOString()),
       state: String(pr.state ?? "open"),
+      body: String(pr.body ?? "").slice(0, 4000) || undefined,
     })),
     sample: false,
   };

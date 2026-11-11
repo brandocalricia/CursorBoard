@@ -102,8 +102,24 @@ export function CanvasWidget() {
                       bodyText:
                         a.descriptionText ||
                         "Loading full instructions…",
-                      linkUrl: a.htmlUrl !== "#" ? a.htmlUrl : undefined,
+                      linkUrl:
+                        a.htmlUrl && a.htmlUrl !== "#"
+                          ? a.htmlUrl
+                          : "https://canvas.du.edu",
                       linkLabel: "Open in Canvas",
+                      links: [
+                        {
+                          url:
+                            a.htmlUrl && a.htmlUrl !== "#"
+                              ? a.htmlUrl
+                              : "https://canvas.du.edu",
+                          label: "Open assignment in Canvas",
+                        },
+                        {
+                          url: "https://canvas.du.edu",
+                          label: "Canvas home",
+                        },
+                      ],
                     })
                   }
                 >

@@ -12,7 +12,9 @@ test.describe("Visual authorization loop", () => {
         density: "comfortable",
         layoutPreset: "balanced",
         enabledWidgets: ["github", "canvas", "email", "briefs", "host", "speed"],
-        settingsVersion: 3,
+        widgetOrder: ["github", "canvas", "email", "briefs", "host", "speed"],
+        widgetSpans: {},
+        settingsVersion: 5,
       },
     });
   });

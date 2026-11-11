@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ComponentType } from "react";
+import Link from "next/link";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
-import { GearSix, WifiSlash } from "@phosphor-icons/react";
+import { GearSix, SquaresFour, WifiSlash } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/components/providers/AppProviders";
@@ -15,7 +16,12 @@ import { HostWidget } from "@/components/widgets/HostWidget";
 import { InternetWidget } from "@/components/widgets/InternetWidget";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { WIDGET_META, type WidgetId } from "@/lib/widgets/registry-meta";
+import {
+  WIDGET_META,
+  normalizeWidgetOrder,
+  resolveWidgetSpan,
+  type WidgetId,
+} from "@/lib/widgets/registry-meta";
 import { cn } from "@/lib/utils";
 
 const COMPONENTS: Record<WidgetId, ComponentType> = {
@@ -26,6 +32,15 @@ const COMPONENTS: Record<WidgetId, ComponentType> = {
   host: HostWidget,
   speed: InternetWidget,
 };
+
+const TICKER = [
+  "Host telemetry · 2s poll",
+  "Canvas · click for instructions + open site",
+  "GitHub · activity & PRs with outbound links",
+  "Internet · sustained multi-stream speed test (~22s)",
+  "Layout · full control on /customize",
+  "Local-first · data stays on this machine",
+];
 
 function greetingFor(date: Date) {
   const h = date.getHours();
@@ -42,7 +57,7 @@ export function DashboardShell() {
 
   useEffect(() => {
     setNow(new Date());
-    const id = window.setInterval(() => setNow(new Date()), 30_000);
+    const id = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -57,10 +72,13 @@ export function DashboardShell() {
     };
   }, []);
 
-  const visible = useMemo(
-    () => WIDGET_META.filter((w) => settings.enabledWidgets.includes(w.id)),
-    [settings.enabledWidgets],
-  );
+  const orderedVisible = useMemo(() => {
+    const order = normalizeWidgetOrder(settings.widgetOrder);
+    return order
+      .filter((id) => settings.enabledWidgets.includes(id))
+      .map((id) => WIDGET_META.find((w) => w.id === id)!)
+      .filter(Boolean);
+  }, [settings.enabledWidgets, settings.widgetOrder]);
 
   const cols =
     settings.layoutPreset === "focus"
@@ -70,27 +88,32 @@ export function DashboardShell() {
         : "xl:grid-cols-4";
 
   return (
-    <div
-      className={cn(
-        "min-h-[100svh]",
-        `density-${settings.density}`,
-      )}
-    >
+    <div className={cn("zen-atmosphere min-h-[100svh]", `density-${settings.density}`)}>
+      <div className="zen-scan" aria-hidden />
       <div className="mx-auto flex min-h-[100svh] max-w-[1500px]">
-        {/* Left rail — ZenWallet trading-desk cue */}
         <aside className="zen-rail sticky top-0 hidden h-[100svh] w-[72px] shrink-0 flex-col items-center gap-6 py-5 md:flex">
           <div className="zen-mark" aria-hidden>
             H
           </div>
           <div className="flex flex-1 flex-col items-center gap-3 pt-2">
-            {visible.slice(0, 6).map((w) => (
-              <span
+            {orderedVisible.slice(0, 6).map((w, i) => (
+              <motion.span
                 key={w.id}
                 title={w.title}
-                className="h-1.5 w-1.5 rounded-full bg-[color-mix(in_oklab,var(--muted-foreground)_55%,transparent)]"
+                className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]"
+                animate={{ opacity: [0.25, 1, 0.25], scale: [0.85, 1.15, 0.85] }}
+                transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.28 }}
               />
             ))}
           </div>
+          <Link
+            href="/customize"
+            aria-label="Open full layout customize page"
+            className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            title="Full layout"
+          >
+            <SquaresFour size={20} weight="bold" />
+          </Link>
           <button
             type="button"
             aria-label="Open customization"
@@ -102,38 +125,64 @@ export function DashboardShell() {
         </aside>
 
         <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-7">
-          <header className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <span className="pulse-dot" aria-hidden />
-                <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--accent)]">
-                  Live
-                </span>
+          <header className="mb-4 border-b border-border pb-4">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="pulse-dot" aria-hidden />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--accent)]">
+                    Live
+                  </span>
+                  {now ? (
+                    <span className="live-clock text-[11px] text-muted-foreground">
+                      {format(now, "HH:mm:ss")}
+                    </span>
+                  ) : null}
+                </div>
+                <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                  High Dashboard
+                </h1>
+                <p className="mt-1.5 text-sm text-muted-foreground">
+                  {now
+                    ? `${greetingFor(now)} · ${format(now, "EEE, MMM d")}`
+                    : "Local command center"}
+                </p>
               </div>
-              <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                High Dashboard
-              </h1>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                {now
-                  ? `${greetingFor(now)} · ${format(now, "EEE, MMM d · HH:mm")}`
-                  : "Local command center"}
-              </p>
+              <div className="flex items-center gap-2">
+                {!online ? (
+                  <span className="meta-chip gap-1 text-[var(--warning)]">
+                    <WifiSlash size={12} /> Offline
+                  </span>
+                ) : null}
+                <Link
+                  href="/customize"
+                  className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-muted"
+                >
+                  <SquaresFour size={16} weight="bold" />
+                  Layout
+                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="md:hidden"
+                  onClick={() => setDrawerOpen(true)}
+                  aria-label="Open customization"
+                >
+                  <GearSix size={16} weight="bold" />
+                  Customize
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {!online ? (
-                <span className="meta-chip gap-1 text-[var(--warning)]">
-                  <WifiSlash size={12} /> Offline
-                </span>
-              ) : null}
-              <Button
-                variant="outline"
-                className="md:hidden"
-                onClick={() => setDrawerOpen(true)}
-                aria-label="Open customization"
-              >
-                <GearSix size={16} weight="bold" />
-                Customize
-              </Button>
+
+            <div className="ticker mt-4 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
+              <div className="ticker-track">
+                {[...TICKER, ...TICKER].map((t, i) => (
+                  <span key={`${t}-${i}`} className="inline-flex items-center gap-2 whitespace-nowrap">
+                    <span className="h-1 w-1 rounded-full bg-[var(--accent)]" />
+                    {t}
+                  </span>
+                ))}
+              </div>
             </div>
           </header>
 
@@ -151,14 +200,13 @@ export function DashboardShell() {
                 style={{ gap: "var(--density-gap)" }}
               >
                 <AnimatePresence mode="popLayout">
-                  {visible.map((w, index) => {
+                  {orderedVisible.map((w, index) => {
                     const Comp = COMPONENTS[w.id];
-                    const span =
-                      settings.layoutPreset === "dense"
-                        ? Math.min(w.colSpan, 2)
-                        : settings.layoutPreset === "focus" && w.id === "host"
-                          ? 3
-                          : w.colSpan;
+                    const span = resolveWidgetSpan(
+                      w.id,
+                      settings.widgetSpans,
+                      settings.layoutPreset,
+                    );
                     return (
                       <motion.div
                         key={w.id}
@@ -174,7 +222,7 @@ export function DashboardShell() {
                         className={cn(
                           span >= 2 && "md:col-span-2",
                           span >= 3 && "xl:col-span-3",
-                          w.id === "host" &&
+                          span === 2 &&
                             settings.layoutPreset === "balanced" &&
                             "xl:col-span-2",
                         )}
@@ -188,16 +236,18 @@ export function DashboardShell() {
             </LayoutGroup>
           )}
 
-          {!loading && visible.length === 0 ? (
+          {!loading && orderedVisible.length === 0 ? (
             <div className="hd-card mt-6">
               <EmptyState
-                illustration="dashboard"
                 title="All widgets are hidden"
-                body="Open Customize and turn a few panels back on."
+                body="Open Layout to turn panels back on and arrange the grid."
                 action={
-                  <Button size="sm" variant="accent" onClick={() => setDrawerOpen(true)}>
-                    Open Customize
-                  </Button>
+                  <Link
+                    href="/customize"
+                    className="btn-accent inline-flex h-8 items-center rounded-md px-3 text-sm"
+                  >
+                    Open Layout
+                  </Link>
                 }
               />
             </div>

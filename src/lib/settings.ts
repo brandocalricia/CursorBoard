@@ -1,10 +1,11 @@
-import type { UserSettings } from "./types";
+import type { UserSettings, WidgetSpan } from "./types";
 import { sqlGet, sqlRun } from "./db";
 import {
   WIDGET_IDS,
   SETTINGS_VERSION,
   migrateEnabledWidgets,
   normalizeEnabledWidgets,
+  normalizeWidgetOrder,
 } from "./widgets/registry-meta";
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -13,15 +14,33 @@ export const DEFAULT_SETTINGS: UserSettings = {
   density: "comfortable",
   layoutPreset: "balanced",
   enabledWidgets: [...WIDGET_IDS],
+  widgetOrder: [...WIDGET_IDS],
+  widgetSpans: {},
   settingsVersion: SETTINGS_VERSION,
 };
+
+function normalizeSpans(
+  spans: UserSettings["widgetSpans"] | undefined,
+): Partial<Record<string, WidgetSpan>> {
+  const out: Partial<Record<string, WidgetSpan>> = {};
+  if (!spans) return out;
+  for (const [k, v] of Object.entries(spans)) {
+    if (v === 1 || v === 2 || v === 3) out[k] = v;
+  }
+  return out;
+}
 
 export function getSettings(): UserSettings {
   const row = sqlGet<{ settings: string }>(
     "SELECT settings FROM user_settings WHERE id = 1",
   );
   if (!row) {
-    return { ...DEFAULT_SETTINGS, enabledWidgets: [...DEFAULT_SETTINGS.enabledWidgets] };
+    return {
+      ...DEFAULT_SETTINGS,
+      enabledWidgets: [...DEFAULT_SETTINGS.enabledWidgets],
+      widgetOrder: [...(DEFAULT_SETTINGS.widgetOrder ?? WIDGET_IDS)],
+      widgetSpans: {},
+    };
   }
   try {
     const parsed = JSON.parse(row.settings) as Partial<UserSettings>;
@@ -30,6 +49,8 @@ export function getSettings(): UserSettings {
       ...DEFAULT_SETTINGS,
       ...parsed,
       enabledWidgets: migrateEnabledWidgets(parsed.enabledWidgets, fromVersion),
+      widgetOrder: normalizeWidgetOrder(parsed.widgetOrder ?? parsed.enabledWidgets),
+      widgetSpans: normalizeSpans(parsed.widgetSpans),
       settingsVersion: SETTINGS_VERSION,
     };
     // v4: CryptoZen lime replaces legacy teal glass accent
@@ -44,7 +65,12 @@ export function getSettings(): UserSettings {
     }
     return next;
   } catch {
-    return { ...DEFAULT_SETTINGS, enabledWidgets: [...DEFAULT_SETTINGS.enabledWidgets] };
+    return {
+      ...DEFAULT_SETTINGS,
+      enabledWidgets: [...DEFAULT_SETTINGS.enabledWidgets],
+      widgetOrder: [...WIDGET_IDS],
+      widgetSpans: {},
+    };
   }
 }
 
@@ -52,6 +78,8 @@ export function saveSettings(next: UserSettings): UserSettings {
   const normalized: UserSettings = {
     ...next,
     enabledWidgets: normalizeEnabledWidgets(next.enabledWidgets),
+    widgetOrder: normalizeWidgetOrder(next.widgetOrder ?? next.enabledWidgets),
+    widgetSpans: normalizeSpans(next.widgetSpans),
     settingsVersion: SETTINGS_VERSION,
   };
   const payload = JSON.stringify(normalized);

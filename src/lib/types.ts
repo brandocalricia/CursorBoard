@@ -2,12 +2,18 @@ export type ThemeMode = "dark" | "light" | "system";
 export type Density = "compact" | "comfortable" | "spacious";
 export type LayoutPreset = "focus" | "balanced" | "dense";
 
+export type WidgetSpan = 1 | 2 | 3;
+
 export type UserSettings = {
   theme: ThemeMode;
   accent: string;
   density: Density;
   layoutPreset: LayoutPreset;
   enabledWidgets: string[];
+  /** Display order of widgets (ids). Missing ids append in registry order. */
+  widgetOrder?: string[];
+  /** Per-widget column span override (1–3). */
+  widgetSpans?: Partial<Record<string, WidgetSpan>>;
   /** Bumps when we need a one-time widget migration. */
   settingsVersion?: number;
 };
@@ -140,6 +146,11 @@ export type NetworkProbe = {
   sample: boolean;
 };
 
+export type DetailLink = {
+  url: string;
+  label: string;
+};
+
 /** Shared detail sheet payload for click-through items */
 export type DetailItem = {
   id: string;
@@ -149,6 +160,9 @@ export type DetailItem = {
   meta?: string[];
   bodyHtml?: string | null;
   bodyText?: string | null;
+  /** Primary destination on the real site */
   linkUrl?: string;
   linkLabel?: string;
+  /** Extra destinations (repo, course home, mail app, docs) */
+  links?: DetailLink[];
 };

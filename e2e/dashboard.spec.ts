@@ -2,11 +2,13 @@ import { expect, test, type Page } from "@playwright/test";
 
 const DEFAULT_SETTINGS = {
   theme: "dark" as const,
-    accent: "#5CEE15",
+  accent: "#5CEE15",
   density: "comfortable" as const,
   layoutPreset: "balanced" as const,
   enabledWidgets: ["github", "canvas", "email", "briefs", "host", "speed"],
-  settingsVersion: 3,
+  widgetOrder: ["github", "canvas", "email", "briefs", "host", "speed"],
+  widgetSpans: {},
+  settingsVersion: 5,
 };
 
 async function resetSettings(request: import("@playwright/test").APIRequestContext) {
@@ -61,7 +63,9 @@ test.describe("High Dashboard", () => {
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(/canvas/i).first()).toBeVisible();
     await expect(dialog.locator(".prose-hd, p").first()).toBeVisible();
-    await expect(dialog.getByRole("link", { name: /Open in Canvas/i })).toBeVisible();
+    await expect(dialog.getByText(/Open on the real site/i)).toBeVisible();
+    await expect(dialog.getByRole("link").first()).toBeVisible();
+    await expect(dialog.getByRole("link").first()).toHaveAttribute("href", /https?:\/\//);
 
     await dialog.getByRole("button", { name: "Close", exact: true }).click();
     await expect(dialog).toHaveCount(0);
@@ -79,6 +83,7 @@ test.describe("High Dashboard", () => {
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(/email/i).first()).toBeVisible();
     await expect(dialog.getByText(/Office hours|pull request|workshop/i).first()).toBeVisible();
+    await expect(dialog.getByRole("link").first()).toHaveAttribute("href", /https?:\/\//);
     await dialog.getByRole("button", { name: "Close", exact: true }).click();
   });
 
@@ -94,7 +99,17 @@ test.describe("High Dashboard", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(/github/i).first()).toBeVisible();
+    await expect(dialog.getByRole("link").first()).toHaveAttribute("href", /github\.com/);
     await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  });
+
+  test("Layout studio page reorders widgets", async ({ page }) => {
+    await page.goto("/customize");
+    await expect(page.getByRole("heading", { name: "Layout studio" })).toBeVisible();
+    await expect(page.getByText("Widget order & size")).toBeVisible();
+    await page.getByRole("button", { name: /Move GitHub down/i }).click();
+    await page.getByRole("link", { name: /Back to live board/i }).click();
+    await expect(page.getByRole("heading", { name: "High Dashboard" })).toBeVisible();
   });
 
   test("Internet panel shows live stats and speed test starts", async ({ page }) => {
@@ -110,7 +125,7 @@ test.describe("High Dashboard", () => {
     await expect(
       speed
         .getByText(
-          /Checking latency|Measuring download|Measuring upload|Testing|Speed test complete|Speed test failed/i,
+          /Latency|Download · sustaining|Upload · sustaining|Measuring|Speed test complete|Speed test failed|sustaining/i,
         )
         .first(),
     ).toBeVisible({ timeout: 20_000 });
