@@ -348,21 +348,99 @@ test.describe("Battle · full desk smash", () => {
   });
 
   test("weather city search, unit toggle, save + remove location", async ({ page }) => {
+    // CI runners often cannot reach Open-Meteo — stub both weather APIs.
+    await page.route("**/api/weather/search?**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          results: [
+            {
+              id: "geo-5419384",
+              name: "Denver",
+              admin1: "Colorado",
+              country: "United States",
+              lat: 39.7392,
+              lon: -104.9903,
+              label: "Denver, Colorado, United States",
+            },
+          ],
+        }),
+      });
+    });
+    await page.route("**/api/weather?**", async (route) => {
+      const now = new Date();
+      const hourly = Array.from({ length: 12 }, (_, i) => {
+        const t = new Date(now.getTime() + i * 3600_000).toISOString();
+        return {
+          time: t,
+          tempC: 10 + i,
+          feelsLikeC: 9 + i,
+          weatherCode: 1,
+          precipProb: 10,
+          precipMm: 0,
+          windKmh: 12,
+          uvIndex: 3,
+        };
+      });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          lat: 39.7392,
+          lon: -104.9903,
+          timezone: "America/Denver",
+          label: "Denver",
+          tempC: 12.5,
+          feelsLikeC: 11,
+          weatherCode: 1,
+          humidity: 40,
+          windKmh: 14,
+          windDirDeg: 180,
+          gustKmh: 20,
+          precipMm: 0,
+          cloudCover: 20,
+          pressureHpa: 1015,
+          visibilityKm: null,
+          uvIndex: 3,
+          dewPointC: 0,
+          sunrise: now.toISOString(),
+          sunset: now.toISOString(),
+          highC: 18,
+          lowC: 4,
+          hourly,
+          daily: [
+            {
+              date: now.toISOString().slice(0, 10),
+              weatherCode: 1,
+              highC: 18,
+              lowC: 4,
+              precipSumMm: 0,
+              precipProbMax: 10,
+              uvIndexMax: 4,
+              sunrise: now.toISOString(),
+              sunset: now.toISOString(),
+            },
+          ],
+          updatedAt: now.toISOString(),
+        }),
+      });
+    });
+
     await waitForDashboard(page);
     const weather = section(page, "Weather");
 
     await weather.getByLabel("Search weather city").fill("Denver");
-    await expect(weather.getByText(/Denver/i).first()).toBeVisible({ timeout: 15_000 });
-    await weather.locator("button.row-item").filter({ hasText: /Denver/i }).first().click();
-    await expect(weather.locator(".stat-value")).toBeVisible({ timeout: 15_000 });
+    const hit = weather.locator("button.row-item").filter({ hasText: /Denver, Colorado/i }).first();
+    await expect(hit).toBeVisible({ timeout: 10_000 });
+    await hit.click();
+    await expect(weather.locator(".stat-value")).toBeVisible({ timeout: 10_000 });
 
     await weather.getByRole("button", { name: "Use Celsius" }).click();
     await weather.getByRole("button", { name: "Use Fahrenheit" }).click();
 
-    // Saved chip appears
-    await expect(weather.getByRole("button", { name: /Denver/i }).first()).toBeVisible();
-    const remove = weather.getByRole("button", { name: /Remove Denver/i }).first();
-    if (await remove.count()) await remove.click();
+    await expect(weather.getByRole("button", { name: "Denver", exact: true }).first()).toBeVisible();
+    await weather.getByRole("button", { name: "Remove Denver" }).first().click();
   });
 
   test("Layout studio: theme packs, spans, drag reorder, toggles", async ({ page }) => {

@@ -67,7 +67,15 @@ export async function GET(request: Request) {
   url.searchParams.set("timezone", "auto");
   url.searchParams.set("wind_speed_unit", "kmh");
 
-  const res = await fetch(url.toString(), { cache: "no-store" });
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
+    });
+  } catch {
+    return NextResponse.json({ error: "open_meteo_unreachable" }, { status: 502 });
+  }
   if (!res.ok) {
     return NextResponse.json({ error: "open_meteo_failed" }, { status: 502 });
   }

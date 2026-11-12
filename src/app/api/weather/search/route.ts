@@ -16,9 +16,24 @@ export async function GET(request: Request) {
   url.searchParams.set("language", "en");
   url.searchParams.set("format", "json");
 
-  const res = await fetch(url.toString(), { cache: "no-store" });
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "geocode_unreachable", results: [] as WeatherSearchHit[] },
+      { status: 502 },
+    );
+  }
+
   if (!res.ok) {
-    return NextResponse.json({ error: "geocode_failed", results: [] }, { status: 502 });
+    return NextResponse.json(
+      { error: "geocode_failed", results: [] as WeatherSearchHit[] },
+      { status: 502 },
+    );
   }
 
   const json = (await res.json()) as {
