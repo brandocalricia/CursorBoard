@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { formatDistanceToNow, parseISO, isValid } from "date-fns";
 import { Newspaper, Play, RefreshCw } from "lucide-react";
 import { WidgetShell } from "@/components/dashboard/WidgetShell";
@@ -27,7 +27,11 @@ type AutomationsPayload = {
   }>;
   composioConfigured: boolean;
   githubConfigured: boolean;
+  canvasManualConfigured?: boolean;
 };
+
+const POLL_MS = 45_000;
+const AUTO_WARM_MS = 10 * 60_000;
 
 export function BriefsWidget() {
   const [digests, setDigests] = useState<Digest[]>([]);
@@ -36,9 +40,11 @@ export function BriefsWidget() {
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [detail, setDetail] = useState<DetailItem | null>(null);
+  const [autoNote, setAutoNote] = useState<string | null>(null);
+  const warmInFlight = useRef(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
     setError(null);
     try {
       const [dRes, aRes] = await Promise.all([
@@ -56,9 +62,50 @@ export function BriefsWidget() {
     }
   }, []);
 
-  useEffect(() => {
-    void load();
+  const runWarm = useCallback(async () => {
+    if (warmInFlight.current) return;
+    warmInFlight.current = true;
+    try {
+      // Lightweight keep-alive while the desk is open
+      await fetch("/api/automations", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: "feed-warm" }),
+      });
+      await fetch("/api/automations", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: "canvas-sync" }),
+      });
+      setAutoNote(`Auto-synced ${new Date().toLocaleTimeString()}`);
+      await load(true);
+    } catch {
+      /* ignore background failures */
+    } finally {
+      warmInFlight.current = false;
+    }
   }, [load]);
+
+  useEffect(() => {
+    void load(false);
+    const poll = window.setInterval(() => void load(true), POLL_MS);
+    return () => window.clearInterval(poll);
+  }, [load]);
+
+  useEffect(() => {
+    // Kick once shortly after mount, then every 10 minutes while tab is open
+    const first = window.setTimeout(() => void runWarm(), 8_000);
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") void runWarm();
+    }, AUTO_WARM_MS);
+    const onFocus = () => void runWarm();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(id);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [runWarm]);
 
   async function runAll() {
     setRunning(true);
@@ -68,7 +115,7 @@ export function BriefsWidget() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ id: "all" }),
       });
-      await load();
+      await load(false);
     } finally {
       setRunning(false);
     }
@@ -78,17 +125,22 @@ export function BriefsWidget() {
     <>
       <WidgetShell
         title="Briefs & automations"
-        description="Digests from local timers — Run once to refresh now"
+        description={
+          autoNote
+            ? `Live desk sync · ${autoNote}`
+            : "Timers + auto-warm every 10m while this page is open"
+        }
         loading={loading && !digests.length}
         error={error}
+        onRetry={() => void load(false)}
         empty={!loading && !error && digests.length === 0}
-        emptyMessage="No briefs yet. Click Run once (or install systemd timers)."
+        emptyMessage="No briefs yet. Click Run once (or install launchd/systemd timers)."
         actions={
           <div className="flex gap-1">
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => void load()}
+              onClick={() => void load(false)}
               aria-label="Refresh briefs"
             >
               <RefreshCw className="h-3.5 w-3.5" />
@@ -134,9 +186,10 @@ export function BriefsWidget() {
             </ul>
           ) : null}
 
-          {!autos?.composioConfigured ? (
+          {!autos?.composioConfigured && !autos?.githubConfigured ? (
             <p className="rounded-lg bg-[color-mix(in_oklab,var(--warning)_10%,transparent)] px-2.5 py-1.5 text-[11px] leading-snug text-muted-foreground">
-              Canvas sample until <code className="text-foreground">COMPOSIO_API_KEY</code> — docs/CANVAS_TOKENS.md
+              Timers need the app running. On Mac:{" "}
+              <code className="text-foreground">./agents/install-launchd.sh</code>
             </p>
           ) : null}
 
@@ -164,17 +217,9 @@ export function BriefsWidget() {
                                   url: "https://canvas.du.edu",
                                   label: "Open Canvas",
                                 },
-                                {
-                                  url: "https://app.composio.dev",
-                                  label: "Open Composio connections",
-                                },
                               ]
                             : kind.includes("github")
                               ? [
-                                  {
-                                    url: "https://github.com",
-                                    label: "Open GitHub",
-                                  },
                                   {
                                     url: "https://github.com/brandocalricia/CursorBoard",
                                     label: "Open this repo",

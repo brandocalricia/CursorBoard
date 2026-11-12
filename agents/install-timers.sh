@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # Installs High Dashboard systemd --user timers on Fedora/Linux.
+# For macOS, use: ./agents/install-launchd.sh
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 UNIT_DIR="$HOME/.config/systemd/user"
 SCRIPT_DIR="$ROOT/agents"
@@ -17,6 +18,8 @@ HIGH_DASHBOARD_PORT=3000
 # COMPOSIO_API_KEY=
 # COMPOSIO_CANVAS_ACCOUNT_ID=canvas_since-ergal
 # GITHUB_TOKEN=
+# CANVAS_API_TOKEN=
+# CANVAS_BASE_URL=https://canvas.du.edu
 EOF
   echo "Created ~/.high-dashboard/env — add secrets there or in the repo .env.local"
 fi
@@ -32,7 +35,9 @@ for f in \
   high-dashboard-canvas-sync.service \
   high-dashboard-canvas-sync.timer \
   high-dashboard-canvas-auth.service \
-  high-dashboard-canvas-auth.timer
+  high-dashboard-canvas-auth.timer \
+  high-dashboard-host-snapshot.service \
+  high-dashboard-host-snapshot.timer
 do
   install_unit "$f"
 done
@@ -41,10 +46,13 @@ systemctl --user daemon-reload
 systemctl --user enable --now \
   high-dashboard-github-digest.timer \
   high-dashboard-canvas-sync.timer \
-  high-dashboard-canvas-auth.timer
+  high-dashboard-canvas-auth.timer \
+  high-dashboard-host-snapshot.timer
 
 echo
 systemctl --user list-timers 'high-dashboard-*' --no-pager
 echo
-echo "Timers installed. Keep High Dashboard running (npm start / desktop) so ingest can land."
+echo "Timers installed (Canvas 30m · GitHub 3h · Host 5m · Auth ~25d)."
+echo "Keep High Dashboard running (npm start / desktop) so ingest can land."
 echo "Smoke-test: ${SCRIPT_DIR}/run-all-once.sh"
+echo "macOS users: use ${SCRIPT_DIR}/install-launchd.sh instead."

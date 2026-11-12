@@ -11,9 +11,12 @@ npm run build && npm start
 # 2) Smoke-test every local automation once
 ./agents/run-all-once.sh
 
-# 3) Install Fedora/Linux user timers (optional but recommended)
-./agents/install-timers.sh
+# 3) Install background timers (recommended)
+./agents/install-launchd.sh   # macOS (your machine)
+# ./agents/install-timers.sh  # Fedora/Linux systemd --user
 ```
+
+While the dashboard tab is open it **also auto-warms** Canvas + feeds about every **10 minutes** (and on window focus). Timers cover the desk when the browser is closed.
 
 Then open the dashboard → **Briefs & automations** → digests appear; **Run once** re-triggers scripts.
 
@@ -27,8 +30,27 @@ Put secrets in `~/.high-dashboard/env` and/or `.env.local` (`COMPOSIO_API_KEY`, 
 | `canvas-sync.sh` | Hits `/api/canvas` (warms cache) + records status brief | Keeps Canvas fresh every 6h |
 | `canvas-auth-check.sh` | Composio `CANVAS_GET_CURRENT_USER` + brief | Catches OAuth death before the 30-day cliff matters |
 | `host-snapshot.sh` | Forces `/api/host` snapshot | Confirms metrics path for probes |
+| `warm-feeds.sh` | Hits Canvas/GitHub/Email/Calendar/Host | Keeps widget caches hot |
 | `run-all-once.sh` | Runs the above | Manual / UI **Run once** |
-| `install-timers.sh` | Enables systemd `--user` timers | Hands-free after reboot |
+| `install-launchd.sh` | macOS launchd agents | Hands-free on your Mac |
+| `install-timers.sh` | Linux systemd `--user` timers | Hands-free after reboot |
+
+## Cadences (as often as practical)
+
+| Job | While desk open | Background timer |
+|-----|-----------------|------------------|
+| Canvas sync | every **10m** + on focus | every **30m** |
+| Feed warm | every **10m** | with desk / Run once |
+| GitHub digest | on Run once / focus warm | every **3h** |
+| Host metrics | **2s** live poll | snapshot every **5m** |
+| Canvas auth | on Run once | ~**25 days** + Cursor timer |
+
+## macOS launchd
+
+```bash
+./agents/install-launchd.sh
+# logs: ~/.high-dashboard/*.log
+```
 
 ## Systemd timers (Fedora / Hyprland)
 
@@ -36,11 +58,10 @@ Installed by `agents/install-timers.sh` into `~/.config/systemd/user/`:
 
 | Timer | Cadence | Service |
 |-------|---------|---------|
-| `high-dashboard-github-digest.timer` | Daily 07:00 | `github-digest.sh` |
-| `high-dashboard-canvas-sync.timer` | Every 6h | `canvas-sync.sh` |
+| `high-dashboard-github-digest.timer` | Every 3h | `github-digest.sh` |
+| `high-dashboard-canvas-sync.timer` | Every 30m | `canvas-sync.sh` |
+| `high-dashboard-host-snapshot.timer` | Every 5m | `host-snapshot.sh` |
 | `high-dashboard-canvas-auth.timer` | ~every 25 days | `canvas-auth-check.sh` |
-
-Host metrics refresh **in-app every 15s** — no timer required.
 
 Ingest example:
 

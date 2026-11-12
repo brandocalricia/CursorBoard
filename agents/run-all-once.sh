@@ -18,5 +18,7 @@ echo "== Canvas auth =="
 "$ROOT/agents/canvas-auth-check.sh" || true
 echo "== Host snapshot =="
 "$ROOT/agents/host-snapshot.sh"
+echo "== Feed warm =="
+"$ROOT/agents/warm-feeds.sh" || true
 echo
 echo "All local automations finished. Open the Briefs widget on the dashboard."

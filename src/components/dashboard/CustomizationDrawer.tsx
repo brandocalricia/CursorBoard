@@ -194,7 +194,8 @@ export function CustomizationDrawer({ open, onClose }: Props) {
               <section className="rounded-lg border border-border bg-muted/40 px-3 py-3 text-xs leading-relaxed text-muted-foreground">
                 <p className="font-medium text-foreground">Local automations</p>
                 <p className="mt-1">
-                  Install timers: <code>agents/install-timers.sh</code>
+                  Mac: <code>agents/install-launchd.sh</code> · Linux:{" "}
+                  <code>agents/install-timers.sh</code>
                 </p>
                 <p className="mt-1">
                   One-shot: <code>agents/run-all-once.sh</code> or use{" "}

@@ -1,9 +1,9 @@
 [Unit]
-Description=Refresh Canvas cache every 6 hours
+Description=Refresh Canvas cache every 30 minutes
 
 [Timer]
-OnBootSec=3min
-OnUnitActiveSec=6h
+OnBootSec=2min
+OnUnitActiveSec=30min
 Persistent=true
 
 [Install]

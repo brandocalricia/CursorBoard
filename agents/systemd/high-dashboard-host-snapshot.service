@@ -1,0 +1,9 @@
+[Unit]
+Description=High Dashboard host snapshot
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-%h/.high-dashboard/env
+WorkingDirectory=__ROOT__
+ExecStart=__ROOT__/agents/host-snapshot.sh

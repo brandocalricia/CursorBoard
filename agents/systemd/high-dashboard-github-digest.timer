@@ -1,8 +1,9 @@
 [Unit]
-Description=Daily High Dashboard GitHub digest
+Description=GitHub digest every 3 hours
 
 [Timer]
-OnCalendar=*-*-* 07:00:00
+OnBootSec=5min
+OnUnitActiveSec=3h
 Persistent=true
 
 [Install]

@@ -6,13 +6,16 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const lat = Number(searchParams.get("lat"));
-  const lon = Number(searchParams.get("lon"));
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return NextResponse.json(
-      { error: "lat_lon_required" },
-      { status: 400 },
-    );
+  const latRaw = searchParams.get("lat");
+  const lonRaw = searchParams.get("lon");
+  // Missing params must 400 — Number(null)===0 would otherwise hit Open-Meteo at 0,0
+  if (latRaw == null || lonRaw == null || latRaw === "" || lonRaw === "") {
+    return NextResponse.json({ error: "lat_lon_required" }, { status: 400 });
+  }
+  const lat = Number(latRaw);
+  const lon = Number(lonRaw);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+    return NextResponse.json({ error: "lat_lon_invalid" }, { status: 400 });
   }
 
   const url = new URL("https://api.open-meteo.com/v1/forecast");

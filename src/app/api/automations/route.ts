@@ -51,11 +51,13 @@ export async function GET() {
   const canvasAuth = lastDigest(["auth_check"]);
   const host = lastSnapshot("system", "host_metrics");
 
+  const feedWarm = lastDigest(["feed_warm"]);
+
   const pulses: Pulse[] = [
     {
       id: "github-digest",
       label: "GitHub digest",
-      schedule: "Daily 07:00 (systemd)",
+      schedule: "Every 3h (timer) · desk auto while open",
       script: "agents/github-digest.sh",
       lastKind: github?.kind,
       lastTitle: github?.title,
@@ -65,7 +67,7 @@ export async function GET() {
     {
       id: "canvas-sync",
       label: "Canvas sync",
-      schedule: "Every 6h (systemd)",
+      schedule: "Every 30m (timer) · every 10m while desk open",
       script: "agents/canvas-sync.sh",
       lastKind: canvasSync?.kind,
       lastTitle: canvasSync?.title,
@@ -80,15 +82,25 @@ export async function GET() {
       lastKind: canvasAuth?.kind,
       lastTitle: canvasAuth?.title,
       lastAt: canvasAuth?.created_at ?? null,
-      help: "Composio OAuth ping — avoids DU 30-day manual tokens",
+      help: "Auth ping — catches expired DU tokens / dead Composio OAuth",
     },
     {
       id: "host-refresh",
       label: "Host metrics",
-      schedule: "In-app every 15s",
+      schedule: "In-app every 2s · snapshot timer 5m",
       script: "agents/host-snapshot.sh",
       lastAt: host?.captured_at ?? null,
       help: "Live CPU/memory/disk from this machine",
+    },
+    {
+      id: "feed-warm",
+      label: "Feed warm",
+      schedule: "Every 10m while desk open",
+      script: "agents/warm-feeds.sh",
+      lastKind: feedWarm?.kind,
+      lastTitle: feedWarm?.title,
+      lastAt: feedWarm?.created_at ?? null,
+      help: "Hits Canvas/GitHub/Email/Calendar/Host so widgets stay fresh",
     },
   ];
 
@@ -114,6 +126,7 @@ const RUNNABLE: Record<string, string> = {
   "canvas-sync": "canvas-sync.sh",
   "canvas-auth": "canvas-auth-check.sh",
   "host-refresh": "host-snapshot.sh",
+  "feed-warm": "warm-feeds.sh",
   all: "run-all-once.sh",
 };
 

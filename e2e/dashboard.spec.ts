@@ -216,7 +216,10 @@ test.describe("High Dashboard", () => {
   test("API health: host, canvas, speedtest, ingest, automations", async ({ request }) => {
     const health = await request.get("/api/health");
     expect(health.ok()).toBeTruthy();
-    expect((await health.json()).ok).toBeTruthy();
+    const healthJson = await health.json();
+    expect(healthJson.ok).toBeTruthy();
+    expect(healthJson).toHaveProperty("canvasAuthStatus");
+    expect(healthJson).toHaveProperty("weatherReady");
 
     const host = await request.get("/api/host");
     expect(host.ok()).toBeTruthy();
@@ -234,7 +237,33 @@ test.describe("High Dashboard", () => {
       const d = await detail.json();
       expect(d).toHaveProperty("title");
       expect(d.bodyHtml || d.bodyText).toBeTruthy();
+      expect(String(d.linkUrl ?? "")).toMatch(/\/courses\/|\/assignments\//);
     }
+
+    const email = await request.get("/api/email");
+    expect(email.ok()).toBeTruthy();
+    expect(Array.isArray((await email.json()).messages)).toBeTruthy();
+
+    const calendar = await request.get("/api/calendar");
+    expect(calendar.ok()).toBeTruthy();
+    expect(Array.isArray((await calendar.json()).events)).toBeTruthy();
+
+    const weatherBad = await request.get("/api/weather");
+    expect(weatherBad.status()).toBe(400);
+
+    const weather = await request.get("/api/weather?lat=39.7392&lon=-104.9903");
+    expect(weather.ok()).toBeTruthy();
+    const wx = await weather.json();
+    expect(typeof wx.tempC).toBe("number");
+    expect(Array.isArray(wx.hourly)).toBeTruthy();
+
+    const links = await request.get("/api/links");
+    expect(links.ok()).toBeTruthy();
+    expect(Array.isArray((await links.json()).links)).toBeTruthy();
+
+    const notes = await request.get("/api/notes");
+    expect(notes.ok()).toBeTruthy();
+    expect(Array.isArray((await notes.json()).notes)).toBeTruthy();
 
     const speed = await request.get("/api/speedtest?kb=64");
     expect(speed.ok()).toBeTruthy();
@@ -260,6 +289,68 @@ test.describe("High Dashboard", () => {
     expect(autos.ok()).toBeTruthy();
     const autoJson = await autos.json();
     expect(Array.isArray(autoJson.pulses)).toBeTruthy();
-    expect(autoJson.pulses.length).toBeGreaterThanOrEqual(3);
+    expect(autoJson.pulses.length).toBeGreaterThanOrEqual(5);
+    const ids = autoJson.pulses.map((p: { id: string }) => p.id);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "github-digest",
+        "canvas-sync",
+        "canvas-auth",
+        "host-refresh",
+        "feed-warm",
+      ]),
+    );
+
+    const warm = await request.post("/api/automations", {
+      data: { id: "feed-warm" },
+    });
+    expect(warm.ok()).toBeTruthy();
+  });
+
+  test("Quick links CRUD opens exact saved URL", async ({ page, request }) => {
+    await request.delete("/api/links?id=noop").catch(() => undefined);
+    const created = await request.post("/api/links", {
+      data: {
+        title: "Canvas home exact",
+        url: "https://canvas.du.edu/courses/320/assignments/a1",
+      },
+    });
+    expect(created.ok()).toBeTruthy();
+    const link = await created.json();
+    expect(link.url).toContain("/assignments/");
+
+    await waitForDashboard(page);
+    const links = page.locator("section").filter({
+      has: page.getByRole("heading", { name: "Quick links" }),
+    });
+    await expect(links.getByRole("link", { name: "Canvas home exact" })).toHaveAttribute(
+      "href",
+      "https://canvas.du.edu/courses/320/assignments/a1",
+    );
+    await request.delete(`/api/links?id=${encodeURIComponent(link.id)}`);
+  });
+
+  test("Focus timer starts and Notes save locally", async ({ page }) => {
+    await waitForDashboard(page);
+
+    const focus = page.locator("section").filter({
+      has: page.getByRole("heading", { name: "Focus timer" }),
+    });
+    await expect(focus.getByText("25:00")).toBeVisible();
+    await focus.getByRole("button", { name: "Start" }).click();
+    await expect(focus.getByRole("button", { name: "Pause" })).toBeVisible();
+    await focus.getByRole("button", { name: "Reset" }).click();
+    await expect(focus.getByText("25:00")).toBeVisible();
+
+    const notes = page.locator("section").filter({
+      has: page.getByRole("heading", { name: "Scratch notes" }),
+    });
+    await notes.getByRole("button", { name: "+ New note" }).click();
+    await notes.getByPlaceholder("Title").fill("E2E note");
+    await notes.getByPlaceholder(/Scratch ideas/i).fill("Ship v1 gate");
+    await notes.getByRole("button", { name: "Save" }).click();
+    await expect(notes.getByRole("button", { name: /E2E note/i }).first()).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });
