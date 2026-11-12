@@ -1,0 +1,577 @@
+@import "tailwindcss";
+
+:root {
+  /* ZenWallet / CryptoZen — void black + electric lime, living trading desk */
+  --background: #020203;
+  --foreground: #d9d9da;
+  --card: #0a0b0c;
+  --card-solid: #0a0b0c;
+  --card-foreground: #d9d9da;
+  --muted: #121414;
+  --muted-foreground: #8a8b8e;
+  --border: rgba(217, 217, 218, 0.08);
+  --border-strong: rgba(217, 217, 218, 0.16);
+  --accent: #5cee15;
+  --accent-2: #405b44;
+  --accent-foreground: #020203;
+  --ring: color-mix(in oklab, var(--accent) 45%, transparent);
+  --success: #5cee15;
+  --warning: #e34d08;
+  --danger: #ff4d4d;
+  --density-gap: 0.85rem;
+  --density-pad: 1rem;
+  --radius: 0.85rem;
+  --shadow-card: none;
+  --grid-bg: #020203;
+}
+
+html.light {
+  --background: #f3f4f2;
+  --foreground: #121314;
+  --card: #ffffff;
+  --card-solid: #ffffff;
+  --card-foreground: #121314;
+  --muted: #e8ebe6;
+  --muted-foreground: #5c6358;
+  --border: rgba(2, 2, 3, 0.08);
+  --border-strong: rgba(2, 2, 3, 0.14);
+  --accent-2: #9ab89a;
+  --accent-foreground: #020203;
+  --warning: #c2410c;
+  --danger: #dc2626;
+  --grid-bg: #f3f4f2;
+}
+
+/* Named theme packs — set via data-theme-pack on <html> */
+html[data-theme-pack="amber"] {
+  --accent: #f59e0b;
+  --accent-2: #7c4a12;
+  --warning: #fb923c;
+}
+html[data-theme-pack="monokai"] {
+  --accent: #a6e22e;
+  --accent-2: #3e4a28;
+  --background: #1e1f1c;
+  --grid-bg: #1e1f1c;
+  --card: #272822;
+}
+html[data-theme-pack="horizon"] {
+  --accent: #7dd3fc;
+  --accent-2: #334155;
+  --background: #0b1220;
+  --grid-bg: #0b1220;
+  --card: #111827;
+}
+html[data-theme-pack="obsidian"] {
+  --accent: #e5e7eb;
+  --accent-2: #4b5563;
+  --background: #09090b;
+  --grid-bg: #09090b;
+  --card: #18181b;
+}
+html[data-theme-pack="daylight"] {
+  --accent: #0f766e;
+  --accent-2: #99f6e4;
+  --background: #f8fafc;
+  --grid-bg: #f8fafc;
+  --card: #ffffff;
+  --foreground: #0f172a;
+  --muted: #e2e8f0;
+  --muted-foreground: #475569;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--grid-bg);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), "Noto Sans", sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Living desk atmosphere — multi-point motion, not a dead flat void */
+.zen-atmosphere {
+  position: relative;
+  isolation: isolate;
+}
+
+.zen-atmosphere::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 55% 40% at 8% 12%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 92% 78%, color-mix(in oklab, var(--accent-2) 28%, transparent), transparent 65%),
+    radial-gradient(ellipse 30% 25% at 70% 18%, color-mix(in oklab, var(--accent) 5%, transparent), transparent 70%),
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in oklab, var(--accent) 3%, transparent) 48%,
+      transparent 52%,
+      transparent 100%
+    );
+  animation: ambience-drift 18s ease-in-out infinite alternate;
+}
+
+.zen-atmosphere::after {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--accent) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--accent) 6%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 75%);
+  animation: grid-breathe 12s ease-in-out infinite;
+}
+
+.zen-scan {
+  pointer-events: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 120px;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in oklab, var(--accent) 7%, transparent),
+    transparent
+  );
+  animation: scan-sweep 9s linear infinite;
+  opacity: 0.55;
+}
+
+@keyframes ambience-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(1.5%, -1%, 0) scale(1.04);
+  }
+}
+
+@keyframes grid-breathe {
+  0%,
+  100% {
+    opacity: 0.22;
+    background-position: 0 0, 0 0;
+  }
+  50% {
+    opacity: 0.4;
+    background-position: 12px 8px, -8px 12px;
+  }
+}
+
+@keyframes scan-sweep {
+  0% {
+    top: -10%;
+  }
+  100% {
+    top: 110%;
+  }
+}
+
+.zen-atmosphere > * {
+  position: relative;
+  z-index: 2;
+}
+
+.density-compact {
+  --density-gap: 0.55rem;
+  --density-pad: 0.75rem;
+}
+
+.density-comfortable {
+  --density-gap: 0.85rem;
+  --density-pad: 1rem;
+}
+
+.density-spacious {
+  --density-gap: 1.2rem;
+  --density-pad: 1.25rem;
+}
+
+.hd-card {
+  background: color-mix(in oklab, var(--card) 92%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(8px);
+}
+
+.hd-card-interactive {
+  transition: border-color 160ms ease, background 160ms ease, transform 200ms ease;
+}
+
+.hd-card-interactive:hover {
+  border-color: color-mix(in oklab, var(--accent) 28%, var(--border-strong));
+  background: color-mix(in oklab, var(--card) 88%, var(--accent-2));
+}
+
+.detail-sheet {
+  background: var(--card-solid);
+  border-left: 1px solid var(--border-strong);
+}
+
+html.light .detail-sheet {
+  background: #ffffff;
+}
+
+html.light .zen-rail {
+  background: color-mix(in oklab, #ffffff 92%, transparent);
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.35rem;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  padding: 0.15rem 0.45rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 700;
+}
+
+.btn-accent:hover {
+  filter: brightness(1.08);
+}
+
+.row-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border-radius: 0.65rem;
+  border: 1px solid transparent;
+  background: var(--muted);
+  padding: 0.7rem 0.8rem;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.row-item:hover {
+  border-color: color-mix(in oklab, var(--accent) 35%, transparent);
+  background: color-mix(in oklab, var(--muted) 80%, var(--accent-2));
+  transform: translateX(2px);
+}
+
+.row-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.meter {
+  height: 0.28rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--muted-foreground) 22%, transparent);
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.prose-hd {
+  color: color-mix(in oklab, var(--foreground) 92%, transparent);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.prose-hd p {
+  margin: 0 0 0.85rem;
+}
+
+.prose-hd a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prose-hd ul,
+.prose-hd ol {
+  margin: 0 0 0.85rem 1.1rem;
+}
+
+.stat-value {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.hd-header {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 1.25rem 1.5rem;
+}
+
+.pulse-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 50%, transparent);
+  animation: live-pulse 2.2s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.ticker {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  gap: 2.5rem;
+  animation: ticker-x 28s linear infinite;
+}
+
+@keyframes ticker-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.speed-ring {
+  stroke: var(--accent);
+  transition: stroke-dashoffset 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.skeleton-shine {
+  position: relative;
+  overflow: hidden;
+  background: var(--muted);
+}
+
+.skeleton-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in oklab, white 8%, transparent) 45%,
+    transparent 70%
+  );
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+.hd-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.hd-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--muted-foreground) 40%, transparent);
+  border-radius: 999px;
+}
+
+.zen-rail {
+  border-right: 1px solid var(--border);
+  background: color-mix(in oklab, #050506 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+/* Text shimmer (shadcn-style) — pure CSS, reduced-motion safe */
+.shimmer {
+  --shimmer-color: color-mix(in oklab, currentColor 55%, white);
+  --shimmer-duration: 2s;
+  --shimmer-spread: calc(3ch + 40px);
+  --shimmer-angle: 20deg;
+  --shimmer-text-fill: transparent;
+  color: inherit;
+  background-image: linear-gradient(
+    var(--shimmer-angle),
+    transparent 0%,
+    transparent 35%,
+    var(--shimmer-color) 50%,
+    transparent 65%,
+    transparent 100%
+  );
+  background-size: calc(200% + var(--shimmer-spread)) 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--shimmer-text-fill);
+  animation: tw-shimmer var(--shimmer-duration) linear infinite;
+}
+
+.shimmer-once {
+  animation-iteration-count: 1;
+}
+
+.shimmer-reverse {
+  animation-direction: reverse;
+}
+
+.shimmer-none {
+  --shimmer-text-fill: currentColor;
+  background-image: none;
+  animation: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+@keyframes tw-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+    --shimmer-text-fill: currentColor;
+    -webkit-text-fill-color: currentColor;
+    background-image: none;
+  }
+}
+
+/* Focus timer — soft status pulse; never flash/clip the countdown digits */
+.focus-timer-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.focus-timer-live-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: focus-timer-breathe 2.8s ease-in-out infinite;
+}
+
+.focus-timer-meter {
+  animation: focus-timer-meter-glow 2.8s ease-in-out infinite;
+}
+
+@keyframes focus-timer-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes focus-timer-meter-glow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-timer-live-dot,
+  .focus-timer-meter {
+    animation: none;
+  }
+}
+
+.zen-mark {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.4rem;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.75rem;
+  animation: mark-breathe 3.6s ease-in-out infinite;
+}
+
+@keyframes mark-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 18px 2px color-mix(in oklab, var(--accent) 35%, transparent);
+  }
+}
+
+.live-clock {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .zen-scan,
+  .ticker-track {
+    display: none !important;
+  }
+}
