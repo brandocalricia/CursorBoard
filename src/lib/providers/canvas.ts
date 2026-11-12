@@ -2,6 +2,7 @@ import type { CanvasAssignment, CanvasPayload, DetailItem } from "../types";
 import { composioExecute, isComposioConfigured } from "../composio";
 import { sqlGet, sqlRun } from "../db";
 import { htmlToText } from "../sanitize";
+import { readTodoList } from "./canvas-todos";
 
 const SAMPLE_DETAILS: Record<string, { html: string; text: string }> = {
   a1: {
@@ -157,32 +158,6 @@ function readCachedDetail(id: string): DetailItem | null {
   }
 }
 
-function extractTodos(data: unknown): TodoItem[] {
-  if (!data || typeof data !== "object") return [];
-  const obj = data as Record<string, unknown>;
-
-  if (Array.isArray(obj.response_data)) return obj.response_data as TodoItem[];
-
-  const nested = obj.data;
-  if (nested && typeof nested === "object") {
-    const n = nested as Record<string, unknown>;
-    if (Array.isArray(n.response_data)) return n.response_data as TodoItem[];
-  }
-
-  for (const val of Object.values(obj)) {
-    if (
-      Array.isArray(val) &&
-      val[0] &&
-      typeof val[0] === "object" &&
-      val[0] !== null &&
-      "assignment" in (val[0] as object)
-    ) {
-      return val as TodoItem[];
-    }
-  }
-  return [];
-}
-
 function extractAssignment(data: unknown): CanvasAssignmentRaw | null {
   if (!data || typeof data !== "object") return null;
   const obj = data as Record<string, unknown>;
@@ -227,10 +202,12 @@ async function fetchViaComposio(): Promise<CanvasPayload | null> {
   const result = await composioExecute<unknown>("CANVAS_LIST_TODO_ITEMS", {});
   if (!result.successful) return null;
 
-  const todos = extractTodos(result.data);
-  if (!todos.length) return null;
+  const extracted = readTodoList(result.data);
+  // Empty but recognized: Composio succeeded and nothing is due. Falling
+  // through shows sample assignments and a false "token missing" banner.
+  if (!extracted.recognized) return null;
 
-  const assignments = todos
+  const assignments = (extracted.todos as TodoItem[])
     .map(toAssignment)
     .filter((x): x is CanvasAssignment => Boolean(x));
 

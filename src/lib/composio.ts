@@ -13,6 +13,31 @@ export type ComposioExecuteResult<T = unknown> = {
   error?: string;
 };
 
+/**
+ * Pin the connected account for this toolkit only.
+ * A Canvas account id must not be sent with Gmail or Calendar tools — Composio
+ * executes with that exact account, so the wrong toolkit fails the call.
+ */
+export function connectedAccountForTool(
+  toolSlug: string,
+  explicit?: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  const pinned = explicit?.trim();
+  if (pinned) return pinned;
+  const slug = toolSlug.toUpperCase();
+  const pick = (key: string) => {
+    const value = env[key]?.trim();
+    return value || undefined;
+  };
+  if (slug.startsWith("CANVAS_")) return pick("COMPOSIO_CANVAS_ACCOUNT_ID");
+  if (slug.startsWith("GMAIL_")) return pick("COMPOSIO_GMAIL_ACCOUNT_ID");
+  if (slug.startsWith("GOOGLECALENDAR_") || slug.startsWith("GOOGLE_CALENDAR_")) {
+    return pick("COMPOSIO_CALENDAR_ACCOUNT_ID");
+  }
+  return undefined;
+}
+
 /** Returns a usable Platform API key, or null for ck_/empty/invalid. */
 export function getComposioApiKey(): string | null {
   const apiKey = process.env.COMPOSIO_API_KEY?.trim();
@@ -32,12 +57,7 @@ export async function composioExecute<T = unknown>(
     return { successful: false, error: "COMPOSIO_API_KEY unset or unsupported (ck_)" };
   }
 
-  const account =
-    connectedAccountId?.trim() ||
-    process.env.COMPOSIO_CANVAS_ACCOUNT_ID?.trim() ||
-    process.env.COMPOSIO_GMAIL_ACCOUNT_ID?.trim() ||
-    process.env.COMPOSIO_CALENDAR_ACCOUNT_ID?.trim() ||
-    undefined;
+  const account = connectedAccountForTool(toolSlug, connectedAccountId);
 
   const res = await fetch(
     `${COMPOSIO_BASE}/api/v3.1/tools/execute/${encodeURIComponent(toolSlug)}`,
