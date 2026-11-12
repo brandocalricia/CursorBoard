@@ -485,6 +485,54 @@ html.light .zen-rail {
   }
 }
 
+/* Focus timer — soft status pulse; never flash/clip the countdown digits */
+.focus-timer-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.focus-timer-live-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: focus-timer-breathe 2.8s ease-in-out infinite;
+}
+
+.focus-timer-meter {
+  animation: focus-timer-meter-glow 2.8s ease-in-out infinite;
+}
+
+@keyframes focus-timer-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes focus-timer-meter-glow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-timer-live-dot,
+  .focus-timer-meter {
+    animation: none;
+  }
+}
+
 .zen-mark {
   width: 1.75rem;
   height: 1.75rem;

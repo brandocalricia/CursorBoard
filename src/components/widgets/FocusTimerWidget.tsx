@@ -61,15 +61,22 @@ export function FocusTimerWidget() {
   return (
     <WidgetShell title="Focus timer" description="Study countdown · local only">
       <div className="flex flex-col items-center gap-4 py-2">
-        <p
-          className={`stat-value text-5xl font-semibold tracking-tight text-[var(--accent)] ${
-            running ? "shimmer" : ""
-          }`}
-        >
-          {fmt(left)}
-        </p>
+        <div className="relative flex flex-col items-center">
+          {/* Digits stay solid — no shimmer/clip that washes out the clock */}
+          <p className="stat-value text-5xl font-semibold tracking-tight text-[var(--accent)]">
+            {fmt(left)}
+          </p>
+          {running ? (
+            <span className="focus-timer-live mt-2" aria-hidden>
+              <span className="focus-timer-live-dot" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Running
+              </span>
+            </span>
+          ) : null}
+        </div>
         <div className="meter w-full max-w-[220px]">
-          <span style={{ width: `${pct}%` }} />
+          <span className={running ? "focus-timer-meter" : undefined} style={{ width: `${pct}%` }} />
         </div>
         <div className="flex flex-wrap justify-center gap-2">
           {PRESETS.map((p) => (
