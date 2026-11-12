@@ -1,5 +1,6 @@
 import type { CalendarPayload } from "../types";
 import { composioExecute, isComposioConfigured } from "../composio";
+import { readFeedCache, writeFeedCache } from "../feed-cache";
 
 type Raw = Record<string, unknown>;
 
@@ -22,54 +23,9 @@ function eventDeepLink(raw: Raw): string | undefined {
   if (typeof html === "string" && html.includes("google.com")) return html;
   const id = raw.id;
   if (typeof id === "string" && id.length > 4) {
-    // Google Calendar deep link by eid is opaque; open event edit when possible
     return `https://calendar.google.com/calendar/event?eid=${encodeURIComponent(id)}`;
   }
   return undefined;
-}
-
-export async function fetchCalendar(): Promise<CalendarPayload> {
-  if (!isComposioConfigured()) {
-    return {
-      events: [],
-      sample: false,
-      configured: false,
-      message:
-        "Google Calendar needs a Composio Platform API key (ak_…). Your Connect key (ck_…) cannot drive this widget yet.",
-    };
-  }
-
-  const now = new Date();
-  const timeMin = now.toISOString();
-  const timeMax = new Date(now.getTime() + 14 * 86400_000).toISOString();
-
-  const result = await composioExecute<unknown>("GOOGLECALENDAR_EVENTS_LIST", {
-    calendarId: "primary",
-    timeMin,
-    timeMax,
-    singleEvents: true,
-    orderBy: "startTime",
-    maxResults: 16,
-  });
-
-  if (!result.successful) {
-    const alt = await composioExecute<unknown>("GOOGLECALENDAR_FIND_EVENT", {
-      time_min: timeMin,
-      time_max: timeMax,
-    });
-    if (!alt.successful) {
-      return {
-        events: [],
-        sample: false,
-        configured: true,
-        message: result.error ?? "Calendar fetch failed",
-      };
-    }
-    const events = pickEvents(alt.data);
-    return mapEvents(events);
-  }
-
-  return mapEvents(pickEvents(result.data));
 }
 
 function mapEvents(events: Raw[]): CalendarPayload {
@@ -93,5 +49,56 @@ function mapEvents(events: Raw[]): CalendarPayload {
         htmlLink: eventDeepLink(e),
       };
     }),
+  };
+}
+
+export async function fetchCalendar(): Promise<CalendarPayload> {
+  if (isComposioConfigured()) {
+    const now = new Date();
+    const timeMin = now.toISOString();
+    const timeMax = new Date(now.getTime() + 14 * 86400_000).toISOString();
+
+    const result = await composioExecute<unknown>("GOOGLECALENDAR_EVENTS_LIST", {
+      calendarId: "primary",
+      timeMin,
+      timeMax,
+      singleEvents: true,
+      orderBy: "startTime",
+      maxResults: 16,
+    });
+
+    if (result.successful) {
+      const payload = mapEvents(pickEvents(result.data));
+      writeFeedCache("calendar", payload);
+      return payload;
+    }
+
+    const alt = await composioExecute<unknown>("GOOGLECALENDAR_FIND_EVENT", {
+      time_min: timeMin,
+      time_max: timeMax,
+    });
+    if (alt.successful) {
+      const payload = mapEvents(pickEvents(alt.data));
+      writeFeedCache("calendar", payload);
+      return payload;
+    }
+  }
+
+  const cached = readFeedCache<CalendarPayload>("calendar", 6 * 60 * 60_000);
+  if (cached?.events?.length) {
+    return {
+      ...cached,
+      sample: false,
+      configured: true,
+      message: cached.message ?? "Calendar from local feed cache",
+    };
+  }
+
+  return {
+    events: [],
+    sample: false,
+    configured: false,
+    message:
+      "Google Calendar not connected. Add COMPOSIO_API_KEY (ak_…) + COMPOSIO_CALENDAR_ACCOUNT_ID, or push a calendar_feed via /api/ingest.",
   };
 }

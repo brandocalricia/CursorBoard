@@ -48,10 +48,10 @@ export function CanvasTokenBanner({
   canvasBaseUrl = "https://canvas.du.edu",
   className,
 }: Props) {
+  // Only surface when a previously-working / configured token is rejected —
+  // not when the desk is still on sample preview or never configured.
   const needsBanner =
-    status === "token_expired" ||
-    status === "unauthorized" ||
-    status === "token_missing";
+    status === "token_expired" || status === "unauthorized";
 
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -74,10 +74,7 @@ export function CanvasTokenBanner({
   if (!needsBanner || dismissed) return null;
 
   const settingsUrl = `${canvasBaseUrl.replace(/\/$/, "")}/profile/settings`;
-  const headline =
-    status === "token_expired" || status === "unauthorized"
-      ? "Canvas token expired (~30 days)"
-      : "Canvas token not configured";
+  const headline = "Canvas token expired (~30 days)";
 
   return (
     <aside

@@ -22,6 +22,20 @@ export function getComposioApiKey(): string | null {
   return apiKey;
 }
 
+function accountForTool(toolSlug: string): string | undefined {
+  const slug = toolSlug.toUpperCase();
+  if (slug.startsWith("GMAIL_")) {
+    return process.env.COMPOSIO_GMAIL_ACCOUNT_ID?.trim() || undefined;
+  }
+  if (slug.startsWith("GOOGLECALENDAR_") || slug.startsWith("GOOGLE_CALENDAR_")) {
+    return process.env.COMPOSIO_CALENDAR_ACCOUNT_ID?.trim() || undefined;
+  }
+  if (slug.startsWith("CANVAS_")) {
+    return process.env.COMPOSIO_CANVAS_ACCOUNT_ID?.trim() || undefined;
+  }
+  return undefined;
+}
+
 export async function composioExecute<T = unknown>(
   toolSlug: string,
   args: Record<string, unknown> = {},
@@ -33,11 +47,7 @@ export async function composioExecute<T = unknown>(
   }
 
   const account =
-    connectedAccountId?.trim() ||
-    process.env.COMPOSIO_CANVAS_ACCOUNT_ID?.trim() ||
-    process.env.COMPOSIO_GMAIL_ACCOUNT_ID?.trim() ||
-    process.env.COMPOSIO_CALENDAR_ACCOUNT_ID?.trim() ||
-    undefined;
+    connectedAccountId?.trim() || accountForTool(toolSlug) || undefined;
 
   const res = await fetch(
     `${COMPOSIO_BASE}/api/v3.1/tools/execute/${encodeURIComponent(toolSlug)}`,

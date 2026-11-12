@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sqlRun } from "@/lib/db";
+import { writeFeedCache } from "@/lib/feed-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,10 +75,20 @@ export async function POST(request: Request) {
     ]);
   }
 
+  const payload = body.payload ?? body;
+
+  // Email / calendar feeds can be pushed from agents or Cursor Composio syncs
+  if (kind === "email_feed" && payload && typeof payload === "object") {
+    writeFeedCache("email", payload);
+  }
+  if (kind === "calendar_feed" && payload && typeof payload === "object") {
+    writeFeedCache("calendar", payload);
+  }
+
   sqlRun(`INSERT INTO metric_snapshots (source, kind, payload) VALUES (?, ?, ?)`, [
     source,
     kind,
-    JSON.stringify(body.payload ?? body),
+    JSON.stringify(payload),
   ]);
 
   return NextResponse.json(

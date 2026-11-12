@@ -56,14 +56,6 @@ export function LinksWidget() {
       loading={loading}
       error={error}
       onRetry={() => void load()}
-      empty={!loading && !links.length}
-      emptyNode={
-        <EmptyState
-          illustration="connection"
-          title="No bookmarks yet"
-          body="Add course portals, docs, or tools. Each link opens exactly that page."
-        />
-      }
     >
       <form onSubmit={addLink} className="mb-3 flex flex-col gap-2">
         <input
@@ -86,30 +78,38 @@ export function LinksWidget() {
           </button>
         </div>
       </form>
-      <ul className="space-y-1.5">
-        {links.map((l) => (
-          <li key={l.id} className="flex items-center gap-2 rounded-lg bg-muted/50 px-2 py-1.5">
-            <Link2 className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
-            <a
-              href={l.url}
-              target="_blank"
-              rel="noreferrer"
-              className="min-w-0 flex-1 truncate text-sm font-medium hover:text-[var(--accent)]"
-              title={l.url}
-            >
-              {l.title}
-            </a>
-            <button
-              type="button"
-              aria-label={`Delete ${l.title}`}
-              className="rounded p-1 text-muted-foreground hover:text-[var(--danger)]"
-              onClick={() => void remove(l.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </li>
-        ))}
-      </ul>
+      {!links.length ? (
+        <EmptyState
+          illustration="connection"
+          title="No bookmarks yet"
+          body="Add course portals, docs, or tools. Each link opens exactly that page."
+        />
+      ) : (
+        <ul className="space-y-1.5">
+          {links.map((l) => (
+            <li key={l.id} className="flex items-center gap-2 rounded-lg bg-muted/50 px-2 py-1.5">
+              <Link2 className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
+              <a
+                href={l.url}
+                target="_blank"
+                rel="noreferrer"
+                className="min-w-0 flex-1 truncate text-sm font-medium hover:text-[var(--accent)]"
+                title={l.url}
+              >
+                {l.title}
+              </a>
+              <button
+                type="button"
+                aria-label={`Delete ${l.title}`}
+                className="rounded p-1 text-muted-foreground hover:text-[var(--danger)]"
+                onClick={() => void remove(l.id)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </WidgetShell>
   );
 }

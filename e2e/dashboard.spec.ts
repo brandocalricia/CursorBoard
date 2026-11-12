@@ -33,6 +33,10 @@ const DEFAULT_SETTINGS = {
     "speed",
   ],
   widgetSpans: {},
+  weatherLocations: [],
+  weatherActiveId: null,
+  weatherUnit: "f" as const,
+  weatherCoords: { lat: 39.7392, lon: -104.9903, label: "Denver" },
   settingsVersion: 6,
 };
 
@@ -115,7 +119,13 @@ test.describe("High Dashboard", () => {
       has: page.getByRole("heading", { name: "Email" }),
     });
     const row = email.locator("button.row-item").first();
-    if (await row.count()) {
+    await expect
+      .poll(async () => (await row.count()) > 0 || (await email.getByText(/Gmail not connected|Inbox is quiet|feed cache|COMPOSIO|GMAIL_USER/i).count()) > 0, {
+        timeout: 15_000,
+      })
+      .toBeTruthy();
+
+    if ((await row.count()) > 0) {
       await row.click();
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
@@ -124,7 +134,7 @@ test.describe("High Dashboard", () => {
       await dialog.getByRole("button", { name: "Close", exact: true }).click();
     } else {
       await expect(
-        email.getByText(/Gmail not connected|Inbox is quiet|Composio Platform/i).first(),
+        email.getByText(/Gmail not connected|Inbox is quiet|feed cache|COMPOSIO|GMAIL_USER/i).first(),
       ).toBeVisible();
     }
   });
@@ -186,7 +196,7 @@ test.describe("High Dashboard", () => {
   test("Customize toggles widgets and persists theme", async ({ page }) => {
     await waitForDashboard(page);
 
-    await page.getByRole("button", { name: "Open customization" }).click();
+    await page.getByRole("button", { name: "Open customization" }).first().click();
     await expect(page.getByRole("heading", { name: "Customize" })).toBeVisible();
 
     await page.getByRole("button", { name: "Light", exact: true }).click();

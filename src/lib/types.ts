@@ -23,10 +23,25 @@ export type UserSettings = {
   widgetOrder?: string[];
   /** Per-widget column span override (1–3). */
   widgetSpans?: Partial<Record<string, WidgetSpan>>;
-  /** Cached weather coords from browser geolocation */
+  /** Legacy single coords — migrated into weatherLocations */
   weatherCoords?: { lat: number; lon: number; label?: string } | null;
+  /** Saved cities for the Weather widget */
+  weatherLocations?: WeatherLocation[];
+  /** Active saved location id */
+  weatherActiveId?: string | null;
+  /** Display unit for weather */
+  weatherUnit?: "c" | "f";
   /** Bumps when we need a one-time widget migration. */
   settingsVersion?: number;
+};
+
+export type WeatherLocation = {
+  id: string;
+  name: string;
+  admin1?: string;
+  country?: string;
+  lat: number;
+  lon: number;
 };
 
 export type HostMetrics = {
@@ -213,20 +228,61 @@ export type CalendarPayload = {
 export type WeatherHour = {
   time: string;
   tempC: number;
+  feelsLikeC: number;
   weatherCode: number;
+  precipProb: number;
+  precipMm: number;
+  windKmh: number;
+  uvIndex: number;
+};
+
+export type WeatherDay = {
+  date: string;
+  weatherCode: number;
+  highC: number;
+  lowC: number;
+  precipSumMm: number;
+  precipProbMax: number;
+  uvIndexMax: number;
+  sunrise: string;
+  sunset: string;
 };
 
 export type WeatherPayload = {
   lat: number;
   lon: number;
   timezone: string;
+  label?: string;
   tempC: number;
   feelsLikeC: number;
   weatherCode: number;
   humidity: number;
   windKmh: number;
+  windDirDeg: number;
+  gustKmh: number;
+  precipMm: number;
+  cloudCover: number;
+  pressureHpa: number;
+  visibilityKm: number | null;
+  uvIndex: number;
+  dewPointC: number | null;
+  sunrise?: string;
+  sunset?: string;
+  highC?: number;
+  lowC?: number;
   hourly: WeatherHour[];
+  daily: WeatherDay[];
   updatedAt: string;
+};
+
+export type WeatherSearchHit = {
+  id: string;
+  name: string;
+  admin1?: string;
+  country?: string;
+  lat: number;
+  lon: number;
+  label: string;
 };
 
 export type QuickLink = {

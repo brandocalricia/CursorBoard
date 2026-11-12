@@ -18,6 +18,9 @@ export const DEFAULT_SETTINGS: UserSettings = {
   widgetOrder: [...WIDGET_IDS],
   widgetSpans: {},
   weatherCoords: null,
+  weatherLocations: [],
+  weatherActiveId: null,
+  weatherUnit: "f",
   settingsVersion: SETTINGS_VERSION,
 };
 
@@ -62,6 +65,21 @@ export function getSettings(): UserSettings {
         next.accent = "#5CEE15";
       }
     }
+    // Migrate legacy weatherCoords into weatherLocations once
+    if (!next.weatherLocations?.length && next.weatherCoords?.lat != null) {
+      const c = next.weatherCoords;
+      const id = `legacy-${c.lat.toFixed(3)}-${c.lon.toFixed(3)}`;
+      next.weatherLocations = [
+        {
+          id,
+          name: c.label?.split(",")[0]?.trim() || "Saved location",
+          lat: c.lat,
+          lon: c.lon,
+        },
+      ];
+      next.weatherActiveId = id;
+    }
+    if (!next.weatherUnit) next.weatherUnit = "f";
     if (fromVersion < SETTINGS_VERSION) {
       saveSettings(next);
     }

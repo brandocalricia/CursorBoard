@@ -38,7 +38,9 @@ export async function GET() {
       canvasManualConfigured,
       canvasLive,
       canvasAuthStatus,
-      emailConfigured: isComposioConfigured(),
+      emailConfigured:
+        isComposioConfigured() ||
+        Boolean(process.env.GMAIL_USER?.trim() && process.env.GMAIL_APP_PASSWORD?.trim()),
       calendarConfigured: isComposioConfigured(),
       weatherReady: true,
       uptimeSec: Math.round(process.uptime()),

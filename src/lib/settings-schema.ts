@@ -34,6 +34,20 @@ export const userSettingsSchema = z.object({
     })
     .nullable()
     .optional(),
+  weatherLocations: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        admin1: z.string().optional(),
+        country: z.string().optional(),
+        lat: z.number(),
+        lon: z.number(),
+      }),
+    )
+    .optional(),
+  weatherActiveId: z.string().nullable().optional(),
+  weatherUnit: z.enum(["c", "f"]).optional(),
   settingsVersion: z.number().int().optional(),
 });
 

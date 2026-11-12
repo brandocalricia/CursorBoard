@@ -39,7 +39,7 @@ export function EmailWidget() {
             title={data?.configured === false ? "Gmail not connected" : "Inbox is quiet"}
             body={
               data?.message ??
-              "When Gmail is live (Composio Platform ak_ key), threads appear here. School Outlook stays blocked by DU admin consent."
+              "Connect Gmail with COMPOSIO_API_KEY (ak_…) or GMAIL_USER + GMAIL_APP_PASSWORD. School Outlook stays blocked by DU admin consent."
             }
           />
         }

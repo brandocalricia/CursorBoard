@@ -38,6 +38,9 @@ const FALLBACK: UserSettings = {
   widgetOrder: [...WIDGET_IDS],
   widgetSpans: {},
   weatherCoords: null,
+  weatherLocations: [],
+  weatherActiveId: null,
+  weatherUnit: "f",
 };
 
 function persist(next: UserSettings) {

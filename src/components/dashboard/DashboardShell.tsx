@@ -157,9 +157,14 @@ export function DashboardShell() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger
-                className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                aria-label="Open customization"
-                onClick={() => setDrawerOpen(true)}
+                render={
+                  <button
+                    type="button"
+                    className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                    aria-label="Open customization"
+                    onClick={() => setDrawerOpen(true)}
+                  />
+                }
               >
                 <GearSix size={20} weight="bold" />
               </TooltipTrigger>
@@ -207,7 +212,6 @@ export function DashboardShell() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="md:hidden"
                     onClick={() => setDrawerOpen(true)}
                     aria-label="Open customization"
                   >

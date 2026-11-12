@@ -51,8 +51,7 @@ export function CanvasWidget({
 
   const authBad =
     data?.authStatus === "token_expired" ||
-    data?.authStatus === "unauthorized" ||
-    data?.authStatus === "token_missing";
+    data?.authStatus === "unauthorized";
 
   return (
     <>
