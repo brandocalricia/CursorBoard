@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSettings, saveSettings, DEFAULT_SETTINGS } from "@/lib/settings";
 import { parseSettingsPatch } from "@/lib/settings-schema";
+import { guardLocalWrite } from "@/lib/local-write-guard";
 import type { UserSettings } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -13,6 +14,14 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const decision = guardLocalWrite(request);
+  if (!decision.ok) {
+    return NextResponse.json(
+      { error: decision.error },
+      { status: decision.status, headers: { "cache-control": "private, no-store" } },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();

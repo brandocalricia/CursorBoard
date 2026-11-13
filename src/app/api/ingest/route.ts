@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sqlRun } from "@/lib/db";
 import { writeFeedCache } from "@/lib/feed-cache";
+import { guardLocalWrite } from "@/lib/local-write-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,37 +14,16 @@ const DIGEST_KINDS = new Set([
   "digest",
 ]);
 
-function unauthorized() {
-  return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-}
-
-function isLoopback(request: Request): boolean {
-  const host = (request.headers.get("host") ?? "").toLowerCase();
-  // App binds to 127.0.0.1 — Host is the reliable signal (Next may add x-forwarded-*).
-  if (
-    host.startsWith("127.0.0.1") ||
-    host.startsWith("localhost") ||
-    host.startsWith("[::1]")
-  ) {
-    return true;
-  }
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return (
-    forwarded === "127.0.0.1" ||
-    forwarded === "::1" ||
-    forwarded === ":ffff:127.0.0.1"
-  );
-}
-
 export async function POST(request: Request) {
-  const expected = process.env.INGEST_SECRET?.trim();
-  const auth = request.headers.get("authorization") ?? "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-
-  if (expected) {
-    if (token !== expected) return unauthorized();
-  } else if (!isLoopback(request)) {
-    return unauthorized();
+  // email_feed / calendar_feed are rendered in the desk. A visited page can
+  // POST text/plain JSON to 127.0.0.1 without a preflight. Require a
+  // same-origin JSON call from an exact loopback Host, or INGEST_SECRET.
+  const decision = guardLocalWrite(request, process.env.INGEST_SECRET);
+  if (!decision.ok) {
+    return NextResponse.json(
+      { error: decision.error },
+      { status: decision.status, headers: { "cache-control": "private, no-store" } },
+    );
   }
 
   let body: {
