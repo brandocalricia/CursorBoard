@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { sqlAll, sqlGet, sqlRun } from "@/lib/db";
+import { guardLocalWrite } from "@/lib/local-write-guard";
 import type { QuickLink } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -23,6 +24,14 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const decision = guardLocalWrite(request);
+  if (!decision.ok) {
+    return NextResponse.json(
+      { error: decision.error },
+      { status: decision.status, headers: { "cache-control": "private, no-store" } },
+    );
+  }
+
   const body = (await request.json()) as { title?: string; url?: string };
   const title = body.title?.trim();
   let url = body.url?.trim();
