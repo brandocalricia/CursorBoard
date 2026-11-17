@@ -49,21 +49,31 @@ export async function composioExecute<T = unknown>(
   const account =
     connectedAccountId?.trim() || accountForTool(toolSlug) || undefined;
 
-  const res = await fetch(
-    `${COMPOSIO_BASE}/api/v3.1/tools/execute/${encodeURIComponent(toolSlug)}`,
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": apiKey,
+  let res: Response;
+  try {
+    res = await fetch(
+      `${COMPOSIO_BASE}/api/v3.1/tools/execute/${encodeURIComponent(toolSlug)}`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          arguments: args,
+          ...(account ? { connected_account_id: account } : {}),
+        }),
+        cache: "no-store",
       },
-      body: JSON.stringify({
-        arguments: args,
-        ...(account ? { connected_account_id: account } : {}),
-      }),
-      cache: "no-store",
-    },
-  );
+    );
+  } catch (err) {
+    // Callers fall through to IMAP, a manual Canvas token, or the feed cache.
+    // A thrown fetch skips those paths and 500s the widget.
+    return {
+      successful: false,
+      error: `composio_network: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -73,8 +83,18 @@ export async function composioExecute<T = unknown>(
     };
   }
 
-  const json = (await res.json()) as ComposioExecuteResult<T>;
-  return json;
+  try {
+    const json = (await res.json()) as ComposioExecuteResult<T>;
+    if (!json || typeof json !== "object") {
+      return { successful: false, error: "composio_invalid_json" };
+    }
+    return json;
+  } catch (err) {
+    return {
+      successful: false,
+      error: `composio_invalid_json: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
 }
 
 export function isComposioConfigured(): boolean {
