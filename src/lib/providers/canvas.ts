@@ -301,12 +301,23 @@ async function fetchViaManualToken(): Promise<ManualResult> {
   const assignments: CanvasAssignment[] = [];
   await Promise.all(
     courses.slice(0, 8).map(async (course) => {
-      const res = await fetch(
-        `${base}/api/v1/courses/${course.id}/assignments?bucket=upcoming&per_page=10&include[]=description`,
-        { headers, cache: "no-store" },
-      );
+      let res: Response;
+      try {
+        res = await fetch(
+          `${base}/api/v1/courses/${course.id}/assignments?bucket=upcoming&per_page=10&include[]=description`,
+          { headers, cache: "no-store" },
+        );
+      } catch {
+        return;
+      }
       if (!res.ok) return;
-      const items = (await res.json()) as CanvasAssignmentRaw[];
+      let items: CanvasAssignmentRaw[];
+      try {
+        items = (await res.json()) as CanvasAssignmentRaw[];
+      } catch {
+        return;
+      }
+      if (!Array.isArray(items)) return;
       for (const a of items) {
         assignments.push({
           id: String(a.id),
