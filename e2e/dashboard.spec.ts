@@ -155,6 +155,66 @@ test.describe("High Dashboard", () => {
     await dialog.getByRole("button", { name: "Close", exact: true }).click();
   });
 
+  test("layout edits before settings load do not replace the saved document", async ({
+    page,
+    request,
+  }) => {
+    const saved = {
+      ...DEFAULT_SETTINGS,
+      themePack: "amber" as const,
+      theme: "light" as const,
+      density: "spacious" as const,
+      enabledWidgets: DEFAULT_SETTINGS.enabledWidgets.filter((id) => id !== "notes"),
+      weatherLocations: [
+        { id: "denver", name: "Denver", lat: 39.7392, lon: -104.9903 },
+      ],
+      weatherActiveId: "denver",
+      weatherUnit: "c" as const,
+      widgetSpans: { github: 3 as const },
+    };
+    const put = await request.put("/api/settings", { data: saved });
+    expect(put.ok()).toBeTruthy();
+
+    let releaseSettings: () => void = () => {};
+    const settingsGate = new Promise<void>((resolve) => {
+      releaseSettings = resolve;
+    });
+    await page.route("**/api/settings", async (route) => {
+      if (route.request().method() === "GET") await settingsGate;
+      await route.continue();
+    });
+
+    await page.goto("/customize");
+    await expect(page.getByRole("heading", { name: "Layout studio" })).toBeVisible();
+    const sawSettingsPut = page
+      .waitForRequest(
+        (req) => req.method() === "PUT" && req.url().includes("/api/settings"),
+        { timeout: 1500 },
+      )
+      .then(() => true)
+      .catch(() => false);
+    // Interactive on fallback settings while GET /api/settings is still in flight.
+    await page.getByRole("button", { name: "Daylight", exact: true }).click();
+    await page.getByRole("button", { name: "On", exact: true }).first().click();
+    expect(await sawSettingsPut).toBe(false);
+
+    releaseSettings();
+    await page.waitForResponse(
+      (res) => res.url().includes("/api/settings") && res.request().method() === "GET",
+    );
+
+    const stored = await (await request.get("/api/settings")).json();
+    expect(stored.themePack).toBe("amber");
+    expect(stored.theme).toBe("light");
+    expect(stored.density).toBe("spacious");
+    expect(stored.weatherUnit).toBe("c");
+    expect(stored.weatherLocations).toEqual([
+      expect.objectContaining({ id: "denver", name: "Denver" }),
+    ]);
+    expect(stored.enabledWidgets).not.toContain("notes");
+    expect(stored.widgetSpans).toEqual({ github: 3 });
+  });
+
   test("Layout studio page reorders widgets", async ({ page }) => {
     await page.goto("/customize");
     await expect(page.getByRole("heading", { name: "Layout studio" })).toBeVisible();
