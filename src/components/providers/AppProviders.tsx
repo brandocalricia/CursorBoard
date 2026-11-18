@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -54,23 +55,25 @@ function persist(next: UserSettings) {
 export function AppProviders({ children }: { children: ReactNode }) {
   const [settings, setLocal] = useState<UserSettings>(FALLBACK);
   const [loading, setLoading] = useState(true);
+  // First paint is FALLBACK. A write before GET /api/settings returns sends that
+  // whole document, and the server replaces saved cities, theme, and layout with it.
+  const hydrated = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch("/api/settings", { cache: "no-store" });
-        if (res.ok) {
-          const data = (await res.json()) as UserSettings;
-          if (!cancelled) {
-            setLocal({
-              ...data,
-              enabledWidgets: normalizeEnabledWidgets(data.enabledWidgets),
-              widgetOrder: normalizeWidgetOrder(data.widgetOrder ?? data.enabledWidgets),
-              widgetSpans: data.widgetSpans ?? {},
-            });
-          }
-        }
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as UserSettings;
+        if (cancelled) return;
+        hydrated.current = true;
+        setLocal({
+          ...data,
+          enabledWidgets: normalizeEnabledWidgets(data.enabledWidgets),
+          widgetOrder: normalizeWidgetOrder(data.widgetOrder ?? data.enabledWidgets),
+          widgetSpans: data.widgetSpans ?? {},
+        });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -113,6 +116,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   }, [settings.theme, settings.accent, settings.density, settings.themePack]);
 
   const setSettings = useCallback(async (patch: Partial<UserSettings>) => {
+    if (!hydrated.current) return;
     setLocal((prev) => {
       const next = { ...prev, ...patch };
       persist(next);
@@ -121,6 +125,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleWidget = useCallback(async (id: string) => {
+    if (!hydrated.current) return;
     setLocal((prev) => {
       const enabled = prev.enabledWidgets.includes(id)
         ? prev.enabledWidgets.filter((w) => w !== id)
@@ -132,6 +137,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   }, []);
 
   const moveWidget = useCallback(async (id: WidgetId, dir: -1 | 1) => {
+    if (!hydrated.current) return;
     setLocal((prev) => {
       const order = normalizeWidgetOrder(prev.widgetOrder);
       const idx = order.indexOf(id);
@@ -149,6 +155,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   }, []);
 
   const setWidgetSpan = useCallback(async (id: WidgetId, span: WidgetSpan) => {
+    if (!hydrated.current) return;
     setLocal((prev) => {
       const next = {
         ...prev,
