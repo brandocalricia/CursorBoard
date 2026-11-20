@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CloudSun, MapPin, Search, Trash2, X } from "lucide-react";
 import {
   Area,
@@ -18,6 +18,7 @@ import type { WeatherLocation, WeatherPayload, WeatherSearchHit } from "@/lib/ty
 import {
   formatClock,
   formatWeekday,
+  shouldCommitDetectedLocation,
   toDisplayTemp,
   uvLabel,
   weatherCodeLabel,
@@ -26,7 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export function WeatherWidget() {
-  const { settings, setSettings } = useSettings();
+  const { settings, loading: settingsLoading, setSettings } = useSettings();
   const unit = settings.weatherUnit === "c" ? "c" : "f";
   const activeId = settings.weatherActiveId ?? null;
 
@@ -47,6 +48,8 @@ export function WeatherWidget() {
     () => locations.find((l) => l.id === activeId) ?? locations[0] ?? null,
     [locations, activeId],
   );
+  const locationsRef = useRef(locations);
+  locationsRef.current = locations;
 
   const load = useCallback(async (lat: number, lon: number, label?: string) => {
     setLoading(true);
@@ -68,14 +71,23 @@ export function WeatherWidget() {
   }, []);
 
   useEffect(() => {
+    // Fallback settings have no cities. Wait until the saved document loads so
+    // a fast geolocation result cannot replace that list.
+    if (settingsLoading) return;
+
+    let cancelled = false;
     if (active) {
       void load(active.lat, active.lon, active.name);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
     const cached = settings.weatherCoords;
     if (cached?.lat != null && cached?.lon != null) {
       void load(cached.lat, cached.lon, cached.label);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
     if (!navigator.geolocation) {
       setGeoDenied(true);
@@ -84,6 +96,14 @@ export function WeatherWidget() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (
+          !shouldCommitDetectedLocation({
+            requestCancelled: cancelled,
+            savedLocationCount: locationsRef.current.length,
+          })
+        ) {
+          return;
+        }
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
         const id = `geo-${lat.toFixed(3)}-${lon.toFixed(3)}`;
@@ -101,12 +121,16 @@ export function WeatherWidget() {
         void load(lat, lon, "Current location");
       },
       () => {
+        if (cancelled) return;
         setGeoDenied(true);
         setLoading(false);
       },
       { enableHighAccuracy: false, timeout: 12_000 },
     );
-  }, [active, load, setSettings, settings.weatherCoords]);
+    return () => {
+      cancelled = true;
+    };
+  }, [active, load, setSettings, settings.weatherCoords, settingsLoading]);
 
   useEffect(() => {
     const q = query.trim();
