@@ -48,6 +48,19 @@ export function formatClock(iso: string, timezone?: string): string {
   }
 }
 
+/**
+ * A geolocation read started while the city list was empty must not be written
+ * after the user already has saved cities. The dashboard's first paint uses
+ * empty fallback settings, and a granted position often resolves after
+ * `GET /api/settings` (or after the user saves a city during the prompt).
+ */
+export function shouldCommitDetectedLocation(opts: {
+  requestCancelled: boolean;
+  savedLocationCount: number;
+}): boolean {
+  return !opts.requestCancelled && opts.savedLocationCount === 0;
+}
+
 export function formatWeekday(isoDate: string): string {
   try {
     const d = new Date(`${isoDate}T12:00:00`);
