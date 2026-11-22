@@ -1,6 +1,7 @@
 import type { EmailItem, EmailPayload } from "../types";
 import { composioExecute, isComposioConfigured } from "../composio";
 import { readFeedCache, writeFeedCache } from "../feed-cache";
+import { imapFailureMessage, selectEmailResult } from "./email-select";
 
 function gmailThreadUrl(threadId: string): string {
   return `https://mail.google.com/mail/u/0/#inbox/${encodeURIComponent(threadId)}`;
@@ -135,7 +136,7 @@ async function fetchViaImap(): Promise<EmailPayload | null> {
       messages: [],
       sample: false,
       configured: true,
-      message: `Gmail IMAP failed: ${err instanceof Error ? err.message : String(err)}`,
+      message: imapFailureMessage(err),
     };
   }
 }
@@ -192,22 +193,12 @@ async function fetchViaComposio(): Promise<EmailPayload | null> {
 
 export async function fetchEmail(): Promise<EmailPayload> {
   const live = (await fetchViaComposio()) ?? (await fetchViaImap());
-  if (live && live.messages.length) return live;
-  if (live && live.configured && live.message?.startsWith("Gmail IMAP failed")) {
-    return live;
-  }
-
-  const cached = readFeedCache<EmailPayload>("email", 6 * 60 * 60_000);
-  if (cached?.messages?.length) {
-    return {
-      ...cached,
-      sample: false,
-      configured: true,
-      message: cached.message ?? "Gmail from local feed cache",
-    };
-  }
-
-  if (live) return live;
+  const cached =
+    live && (live.messages?.length ?? 0) > 0
+      ? null
+      : readFeedCache<EmailPayload>("email", 6 * 60 * 60_000);
+  const selected = selectEmailResult(live, cached);
+  if (selected) return selected;
 
   const hasImapHint = isImapConfigured();
   return {
