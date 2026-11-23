@@ -2,6 +2,7 @@ import type { CanvasAssignment, CanvasPayload, DetailItem } from "../types";
 import { composioExecute, isComposioConfigured } from "../composio";
 import { sqlGet, sqlRun } from "../db";
 import { htmlToText } from "../sanitize";
+import { classifyCanvasCoursesFailure } from "./canvas-status";
 
 const SAMPLE_DETAILS: Record<string, { html: string; text: string }> = {
   a1: {
@@ -139,6 +140,22 @@ function cacheDetail(id: string, detail: DetailItem) {
     );
   } catch {
     /* ignore */
+  }
+}
+
+function readCachedCanvasList(): CanvasPayload | null {
+  try {
+    const row = sqlGet<{ payload: string }>(
+      `SELECT payload FROM metric_snapshots
+       WHERE source = 'canvas' AND kind = 'assignments'
+       ORDER BY id DESC LIMIT 1`,
+    );
+    if (!row) return null;
+    const parsed = JSON.parse(row.payload) as CanvasPayload;
+    if (!parsed || parsed.sample || !Array.isArray(parsed.assignments)) return null;
+    return parsed;
+  } catch {
+    return null;
   }
 }
 
@@ -280,20 +297,15 @@ async function fetchViaManualToken(): Promise<ManualResult> {
     };
   }
 
-  if (coursesRes.status === 401 || coursesRes.status === 403) {
-    return {
-      ok: false,
-      status: "token_expired",
-      message:
-        "Your Canvas access token was rejected (expired or revoked). DU tokens last ~30 days — renew it below.",
-    };
-  }
   if (!coursesRes.ok) {
-    return {
-      ok: false,
-      status: "unauthorized",
-      message: `Canvas returned HTTP ${coursesRes.status}.`,
-    };
+    const body =
+      coursesRes.status === 403 ? await coursesRes.text().catch(() => "") : "";
+    const failure = classifyCanvasCoursesFailure(
+      coursesRes.status,
+      body,
+      coursesRes.headers.get("x-rate-limit-remaining"),
+    );
+    return { ok: false, status: failure.status, message: failure.message };
   }
 
   const courses = (await coursesRes.json()) as Array<{ id: number; name: string }>;
@@ -358,6 +370,21 @@ export async function fetchCanvas(): Promise<CanvasPayload> {
       authMessage: viaToken.message,
       canvasBaseUrl: canvasBase(),
     };
+  }
+
+  // Network blip or rate limit — keep the last live list, not the sample preview
+  // and not the "token expired" banner.
+  if (viaToken.status === "network_error") {
+    const cached = readCachedCanvasList();
+    if (cached) {
+      return {
+        ...cached,
+        sample: false,
+        authStatus: "network_error",
+        authMessage: viaToken.message,
+        canvasBaseUrl: cached.canvasBaseUrl || canvasBase(),
+      };
+    }
   }
 
   // No usable live source — sample for first-run preview
