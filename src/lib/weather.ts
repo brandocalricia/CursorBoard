@@ -36,6 +36,85 @@ export function uvLabel(uv: number): string {
   return "Extreme";
 }
 
+/**
+ * Open-Meteo sends clock times with no offset, in the location timezone
+ * (`timezone=auto` → an IANA name such as Europe/London).
+ * `new Date("2026-11-24T07:30")` reads that as the machine's zone, so a
+ * Denver browser labels London's 7:30 sunrise as 2:30 PM and the hourly
+ * chart pairs the current label with a temperature from hours earlier.
+ * Return the real UTC instant for that civil time, or null if it can't be read.
+ */
+export function instantFromZonedNaive(
+  naive: string,
+  timeZone: string | null | undefined,
+): Date | null {
+  if (!timeZone || timeZone === "auto") return null;
+  const match = naive
+    .trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6] ?? 0);
+  const desiredUtc = Date.UTC(year, month - 1, day, hour, minute, second);
+  let utc = desiredUtc;
+  try {
+    for (let i = 0; i < 2; i++) {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        hourCycle: "h23",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }).formatToParts(new Date(utc));
+      const get = (type: Intl.DateTimeFormatPartTypes) =>
+        Number(parts.find((p) => p.type === type)?.value);
+      const zonedHour = get("hour") === 24 ? 0 : get("hour");
+      const asZoned = Date.UTC(
+        get("year"),
+        get("month") - 1,
+        get("day"),
+        zonedHour,
+        get("minute"),
+        get("second"),
+      );
+      utc = desiredUtc - (asZoned - utc);
+    }
+  } catch {
+    return null;
+  }
+  const result = new Date(utc);
+  return Number.isFinite(result.getTime()) ? result : null;
+}
+
+/** UTC ISO instant for an Open-Meteo local timestamp. Unchanged if the zone is unknown. */
+export function zonedNaiveToUtcIso(
+  naive: string,
+  timeZone: string | null | undefined,
+): string {
+  return instantFromZonedNaive(naive, timeZone)?.toISOString() ?? naive;
+}
+
+/** First hourly slot at or after now−30min, using the city's clock, not the server's. */
+export function hourlyStartIndex(
+  times: string[],
+  timeZone: string | null | undefined,
+  nowMs: number,
+): number {
+  const idx = times.findIndex((t) => {
+    const instant = instantFromZonedNaive(t, timeZone);
+    const ms = instant ? instant.getTime() : new Date(t).getTime();
+    return Number.isFinite(ms) && ms >= nowMs - 30 * 60_000;
+  });
+  return idx < 0 ? 0 : idx;
+}
+
 export function formatClock(iso: string, timezone?: string): string {
   try {
     return new Intl.DateTimeFormat(undefined, {

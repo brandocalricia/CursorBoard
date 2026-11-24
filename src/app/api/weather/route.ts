@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { WeatherDay, WeatherHour, WeatherPayload } from "@/lib/types";
+import { hourlyStartIndex, zonedNaiveToUtcIso } from "@/lib/weather";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,16 +89,16 @@ export async function GET(request: Request) {
   };
 
   const current = json.current ?? {};
+  const timeZone = json.timezone;
   const hourlyTimes = (json.hourly?.time ?? []) as string[];
   const now = Date.now();
-  // Start hourly from the current hour onward
-  let startIdx = hourlyTimes.findIndex((t) => new Date(t).getTime() >= now - 30 * 60_000);
-  if (startIdx < 0) startIdx = 0;
+  // Open-Meteo hourly stamps are local civil times in `timeZone`, not the server zone.
+  const startIdx = hourlyStartIndex(hourlyTimes, timeZone, now);
 
   const hourly: WeatherHour[] = hourlyTimes.slice(startIdx, startIdx + 24).map((t, i) => {
     const idx = startIdx + i;
     return {
-      time: t,
+      time: zonedNaiveToUtcIso(t, timeZone),
       tempC: Number(json.hourly?.temperature_2m?.[idx] ?? 0),
       feelsLikeC: Number(json.hourly?.apparent_temperature?.[idx] ?? 0),
       weatherCode: Number(json.hourly?.weather_code?.[idx] ?? 0),
@@ -117,8 +118,8 @@ export async function GET(request: Request) {
     precipSumMm: Number(json.daily?.precipitation_sum?.[i] ?? 0),
     precipProbMax: Number(json.daily?.precipitation_probability_max?.[i] ?? 0),
     uvIndexMax: Number(json.daily?.uv_index_max?.[i] ?? 0),
-    sunrise: String(json.daily?.sunrise?.[i] ?? ""),
-    sunset: String(json.daily?.sunset?.[i] ?? ""),
+    sunrise: zonedNaiveToUtcIso(String(json.daily?.sunrise?.[i] ?? ""), timeZone),
+    sunset: zonedNaiveToUtcIso(String(json.daily?.sunset?.[i] ?? ""), timeZone),
   }));
 
   const currentUv = hourly[0]?.uvIndex ?? Number(daily[0]?.uvIndexMax ?? 0);
